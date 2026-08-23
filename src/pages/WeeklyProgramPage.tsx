@@ -10,6 +10,7 @@ import {
   getEligibleCandidates,
   PRAYER_TYPE_NAME,
 } from '../lib/candidates'
+import { todayString } from '../lib/localDate'
 import { AssignmentCell } from '../components/AssignmentCell'
 import { AutocompleteSelect } from '../components/AutocompleteSelect'
 import type { Assignment, Member, Program, ProgramType, Song, TeachingPoint, Venue } from '../types/domain'
@@ -64,12 +65,8 @@ function formatShortDate(dateStr: string): string {
 
 /** 今日以降で一番近い週。すべて過去なら最後の週を返す(初期表示と「今週」ボタンで共用) */
 function currentWeekOf(dates: string[]): string | null {
-  const today = todayStr()
+  const today = todayString()
   return dates.find((d) => d >= today) ?? dates[dates.length - 1] ?? null
-}
-
-function todayStr(): string {
-  return new Date().toISOString().slice(0, 10)
 }
 
 const SELECTED_DATE_KEY = 'weeklyProgram.selectedDate'
@@ -123,7 +120,7 @@ export function WeeklyProgramPage() {
         setSelectedDate(saved)
         return
       }
-      setSelectedDate(currentWeekOf(dates) ?? todayStr())
+      setSelectedDate(currentWeekOf(dates) ?? todayString())
     })
   }, [loadAvailableDates])
 
@@ -172,7 +169,7 @@ export function WeeklyProgramPage() {
 
   // 候補者の前回/今後日付・ペア履歴は、表示中の週の日付を基準に都度計算する
   // (先の週まで入力済みの場合に、未来の日付を「前回」と誤表示しないため)
-  const referenceDate = selectedDate ?? todayStr()
+  const referenceDate = selectedDate ?? todayString()
 
   const lastAssignedAsMemberMap = useMemo(
     () => buildLastAssignedMap(historyRows, 'member', referenceDate),

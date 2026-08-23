@@ -3,16 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
 import { buildProgramCsv, downloadCsv } from '../lib/csvExport'
-
-function todayStr(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
-function endOfNextMonthStr(): string {
-  const d = new Date()
-  d.setMonth(d.getMonth() + 2, 0)
-  return d.toISOString().slice(0, 10)
-}
+import { currentMonthString, endOfNextMonthString, todayString } from '../lib/localDate'
 
 const OTHER_REPORTS = [
   { key: 'assignments', label: '割当予定表' },
@@ -23,9 +14,9 @@ const OTHER_REPORTS = [
 
 export function ReportsPage() {
   const { settings, teachingPoints, refetchAll } = useAppData()
-  const [from, setFrom] = useState(todayStr())
-  const [to, setTo] = useState(endOfNextMonthStr())
-  const [scheduleMonth, setScheduleMonth] = useState(todayStr().slice(0, 7))
+  const [from, setFrom] = useState(todayString())
+  const [to, setTo] = useState(endOfNextMonthString())
+  const [scheduleMonth, setScheduleMonth] = useState(currentMonthString())
   const [memo, setMemo] = useState(settings.reports_memo ?? '')
   const [savingMemo, setSavingMemo] = useState(false)
   const [memoError, setMemoError] = useState<string | null>(null)
