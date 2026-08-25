@@ -103,14 +103,28 @@ export function WeeklyProgramPage() {
   const [pasteResult, setPasteResult] = useState<{ added: number; warnings: string[] } | null>(null)
 
   const loadAvailableDates = useCallback(async () => {
-    const { data, error } = await supabase.from('programs').select('date').order('date', { ascending: true })
-    if (error) {
-      setError(error.message)
-      return [] as string[]
+    // 起動直後は認証がまだ効かず、通信は成功したまま0件で返ることがある。
+    // そのまま受け取ると週の一覧が空になり、今日の日付が選ばれてナビゲーションも
+    // 全て押せなくなるため、空だったときは少し待って一度だけ取り直す。
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 800))
+
+      const { data, error } = await supabase.from('programs').select('date').order('date', { ascending: true })
+      if (error) {
+        if (attempt > 0) {
+          setError(error.message)
+          return [] as string[]
+        }
+        continue
+      }
+
+      const dates = Array.from(new Set((data ?? []).map((r) => r.date))).sort()
+      if (dates.length === 0 && attempt === 0) continue
+
+      setAvailableDates(dates)
+      return dates
     }
-    const dates = Array.from(new Set((data ?? []).map((r) => r.date))).sort()
-    setAvailableDates(dates)
-    return dates
+    return [] as string[]
   }, [])
 
   useEffect(() => {
