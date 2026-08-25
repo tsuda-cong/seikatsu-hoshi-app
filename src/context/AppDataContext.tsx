@@ -100,6 +100,16 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (songsRes.error) throw songsRes.error
     if (teachingPointsRes.error) throw teachingPointsRes.error
 
+    // 認証が効く前に走ると、通信は成功したまま全てが0件で返ることがある。
+    // 名簿・種別・歌が揃って空になるのは通常ありえないので、取得できなかったものとして
+    // 扱い、呼び出し元の再試行に任せる(そのまま受け取ると、候補者が誰も出ない・
+    // 種別が読めないといった状態で起動してしまう)
+    const coreDataAllEmpty =
+      (membersRes.data?.length ?? 0) === 0 &&
+      (programTypesRes.data?.length ?? 0) === 0 &&
+      (songsRes.data?.length ?? 0) === 0
+    if (coreDataAllEmpty) throw new Error('データを取得できませんでした')
+
     setMembers(membersRes.data ?? [])
     setVenues(venuesRes.data ?? [])
     setProgramTypes(programTypesRes.data ?? [])

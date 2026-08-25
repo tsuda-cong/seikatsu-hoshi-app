@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type MouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
@@ -142,34 +142,52 @@ export function WeeklyProgramPage() {
     if (selectedDate) sessionStorage.setItem(SELECTED_DATE_KEY, selectedDate)
   }, [selectedDate])
 
+  // loadWeek から最新の日付一覧を参照するためのもの。依存に入れると読み込みが
+  // 走り直してしまうため、refで持つ
+  const availableDatesRef = useRef<string[]>([])
+  useEffect(() => {
+    availableDatesRef.current = availableDates
+  }, [availableDates])
+
   const loadWeek = useCallback(async (date: string) => {
     setLoadingWeek(true)
     setError(null)
     try {
-      const { data: programData, error: programError } = await supabase
-        .from('programs')
-        .select('*, program_types(*)')
-        .eq('date', date)
-        .order('order_no', { ascending: true })
-        .returns<ProgramWithType[]>()
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 800))
 
-      if (programError) throw programError
-      setPrograms(programData ?? [])
+        const { data: programData, error: programError } = await supabase
+          .from('programs')
+          .select('*, program_types(*)')
+          .eq('date', date)
+          .order('order_no', { ascending: true })
+          .returns<ProgramWithType[]>()
 
-      const programIds = (programData ?? []).map((p) => p.id)
-      if (programIds.length === 0) {
-        setAssignments([])
+        if (programError) throw programError
+
+        const weekPrograms = programData ?? []
+        // 日付一覧に載っている週なのに0件で返るのは、認証が効く前に走ったとき。
+        // (まだ何も登録していない週なら一覧にも載らないので、取り違えることはない)
+        if (weekPrograms.length === 0 && attempt === 0 && availableDatesRef.current.includes(date)) continue
+
+        setPrograms(weekPrograms)
+
+        const programIds = weekPrograms.map((p) => p.id)
+        if (programIds.length === 0) {
+          setAssignments([])
+          return
+        }
+
+        const { data: assignmentData, error: assignmentError } = await supabase
+          .from('assignments')
+          .select('*, member:members!member_id(*), partner:members!partner_id(*), venue:venues(*)')
+          .in('program_id', programIds)
+          .returns<AssignmentWithRelations[]>()
+
+        if (assignmentError) throw assignmentError
+        setAssignments(assignmentData ?? [])
         return
       }
-
-      const { data: assignmentData, error: assignmentError } = await supabase
-        .from('assignments')
-        .select('*, member:members!member_id(*), partner:members!partner_id(*), venue:venues(*)')
-        .in('program_id', programIds)
-        .returns<AssignmentWithRelations[]>()
-
-      if (assignmentError) throw assignmentError
-      setAssignments(assignmentData ?? [])
     } catch (e) {
       setError(e instanceof Error ? e.message : '不明なエラーが発生しました')
     } finally {
