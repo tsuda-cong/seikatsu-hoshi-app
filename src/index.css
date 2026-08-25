@@ -1154,7 +1154,9 @@ input {
    ここを狭めると名前が2行になり、行の高さが揃わなくなる */
 .schedule-row {
   display: grid;
-  grid-template-columns: 1fr 26px 26px 48px 116px 100px 108px;
+  /* 歌は「103番」で32px必要なので34px。持ち時間は中身(最長「10分」で25px)より
+     広めに取り、右寄せどうしで歌と詰まって見えないよう1文字分ほど間を空けている */
+  grid-template-columns: 1fr 34px 34px 48px 116px 100px 108px;
   align-items: start;
   column-gap: 6px;
   /* 文字を9ptに上げた分、行の高さが変わらないよう余白と行間を詰めている */
@@ -1178,6 +1180,7 @@ input {
 /* 番号付きのタイトルは「N．」の分だけぶら下げインデントにして、折り返した2行目以降が
    番号の後ろに揃うようにする。番号なしのタイトルは最初からその位置から書き始める */
 .schedule-col-title {
+  grid-column: 1;
   white-space: normal;
   padding-left: 1.54em;
   text-indent: -1.54em;
@@ -1187,11 +1190,39 @@ input {
   text-indent: 0;
 }
 
+/* 歌が無い行は、空いている歌の列までタイトルを伸ばす(表計算ソフトと同じ見え方)。
+   歌の列そのものは描画しないので、重なることはない */
+.schedule-col-title-span-song {
+  grid-column: 1 / span 2;
+}
+
+/* 歌の列を描画しない行があるため、後ろの列がずれないよう位置を固定する */
+.schedule-col-song {
+  grid-column: 2;
+}
+.schedule-col-duration {
+  grid-column: 3;
+}
+.schedule-col-endtime {
+  grid-column: 4;
+}
+.schedule-col-material {
+  grid-column: 5;
+}
+.schedule-col-presenter {
+  grid-column: 6;
+}
+.schedule-col-partner {
+  grid-column: 7;
+}
+
 /* 印刷して読むものなので、本文はグレーではなく黒で統一する */
+/* 歌・持ち時間・担当者・朗読者は右寄せにして、桁と名前の右端を揃える */
 .schedule-col-song,
 .schedule-col-duration {
   color: #000;
   white-space: nowrap;
+  text-align: right;
 }
 
 .schedule-col-endtime {
@@ -1206,6 +1237,7 @@ input {
 .schedule-col-presenter,
 .schedule-col-partner {
   color: #000;
+  text-align: right;
 }
 
 @media print {

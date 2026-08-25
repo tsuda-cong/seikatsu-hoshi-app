@@ -78,12 +78,19 @@ export function SchedulePrintPage() {
                     key={item.id}
                     style={{ borderLeftColor: sectionColor(item.section) }}
                   >
+                    {/* 歌が無い行では、表計算ソフトのように隣の空いた列までタイトルを伸ばす */}
                     <span
-                      className={`schedule-col-title${hasLeadingNumber(titleText) ? '' : ' schedule-col-title-unnumbered'}`}
+                      className={[
+                        'schedule-col-title',
+                        hasLeadingNumber(titleText) ? '' : 'schedule-col-title-unnumbered',
+                        song ? '' : 'schedule-col-title-span-song',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
                     >
                       {titleText}
                     </span>
-                    <span className="schedule-col-song">{song ? `${song.number}番` : ''}</span>
+                    {song && <span className="schedule-col-song">{`${song.number}番`}</span>}
                     <span className="schedule-col-duration">
                       {item.duration_minutes ? `${item.duration_minutes}分` : ''}
                     </span>
