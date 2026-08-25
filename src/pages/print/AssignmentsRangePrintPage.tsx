@@ -60,9 +60,11 @@ export function AssignmentsRangePrintPage() {
 
                 return (
                   <Fragment key={date}>
+                    {/* 生徒・相手の列を名前の幅まで絞ったので、助言者名が入るよう
+                        見出しは最後の2列にまたがらせる */}
                     <tr className="assignments-week-header">
-                      <td colSpan={4}>{formatDateHeading(date)}</td>
-                      <td>{chairman ? `助言者: ${chairman}` : ''}</td>
+                      <td colSpan={3}>{formatDateHeading(date)}</td>
+                      <td colSpan={2}>{chairman ? `助言者: ${chairman}` : ''}</td>
                     </tr>
                     {items.map((item) => {
                       const assignment = data.assignmentByProgramId.get(item.id)

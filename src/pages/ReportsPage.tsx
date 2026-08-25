@@ -1,9 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
 import { buildProgramCsv, downloadCsv } from '../lib/csvExport'
 import { currentMonthString, endOfNextMonthString, todayString } from '../lib/localDate'
+
+// 帳票を開くと画面が切り替わってこのページは作り直されるため、選んだ期間を覚えておく。
+// 続けて別の帳票を出すときに同じ期間であることがほとんどなので、選び直さずに済むようにする。
+// sessionStorageなので、アプリを起動し直せば通常どおり初期値(今日〜翌月末・今月)に戻る。
+const RANGE_KEY = 'reports.range'
+
+function savedRange(): { from?: string; to?: string; month?: string } {
+  try {
+    return JSON.parse(sessionStorage.getItem(RANGE_KEY) ?? '{}')
+  } catch {
+    return {}
+  }
+}
 
 const OTHER_REPORTS = [
   { key: 'assignments', label: '割当予定表' },
@@ -14,14 +27,18 @@ const OTHER_REPORTS = [
 
 export function ReportsPage() {
   const { settings, teachingPoints, refetchAll } = useAppData()
-  const [from, setFrom] = useState(todayString())
-  const [to, setTo] = useState(endOfNextMonthString())
-  const [scheduleMonth, setScheduleMonth] = useState(currentMonthString())
+  const [from, setFrom] = useState(() => savedRange().from ?? todayString())
+  const [to, setTo] = useState(() => savedRange().to ?? endOfNextMonthString())
+  const [scheduleMonth, setScheduleMonth] = useState(() => savedRange().month ?? currentMonthString())
   const [memo, setMemo] = useState(settings.reports_memo ?? '')
   const [savingMemo, setSavingMemo] = useState(false)
   const [memoError, setMemoError] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
+
+  useEffect(() => {
+    sessionStorage.setItem(RANGE_KEY, JSON.stringify({ from, to, month: scheduleMonth }))
+  }, [from, to, scheduleMonth])
 
   async function handleExportCsv() {
     setExporting(true)

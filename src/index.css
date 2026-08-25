@@ -855,7 +855,8 @@ input {
   color: #111;
   max-width: 210mm;
   margin: 0 auto;
-  padding: 12mm;
+  /* 印刷時の @page margin と揃えている(左右は狭め) */
+  padding: 12mm 6mm;
   font-family: var(--sans);
 }
 
@@ -887,7 +888,8 @@ input {
   }
   @page {
     size: A4;
-    margin: 10mm;
+    /* 左右は狭めて、表の列に幅を回す(上下は綴じ代・ヘッダー用に残す) */
+    margin: 10mm 6mm;
   }
 }
 
@@ -928,7 +930,7 @@ input {
 }
 
 .slip-fields dt {
-  color: #555;
+  color: #000;
   white-space: nowrap;
 }
 
@@ -941,7 +943,7 @@ input {
   padding-top: 8px;
   border-top: 1px solid #ccc;
   font-size: 10px;
-  color: #555;
+  color: #000;
   line-height: 1.5;
 }
 
@@ -953,7 +955,7 @@ input {
 
 .chair-date {
   font-size: 15px;
-  color: #333;
+  color: #000;
   margin: 0 0 10px;
   padding-bottom: 6px;
   border-bottom: 2px solid #333;
@@ -997,20 +999,20 @@ input {
   grid-row: 1;
   white-space: nowrap;
   text-align: right;
-  color: #444;
+  color: #000;
 }
 
 .chair-item-presenter {
   grid-column: 3;
   grid-row: 1;
   text-align: right;
-  color: #222;
+  color: #000;
 }
 
 .chair-item-material {
   grid-column: 1;
   grid-row: 2;
-  color: #555;
+  color: #000;
   font-size: 12px;
   font-style: italic;
   min-width: 0;
@@ -1021,13 +1023,13 @@ input {
   grid-row: 2;
   text-align: right;
   font-size: 12px;
-  color: #222;
+  color: #000;
 }
 
 .chair-item-content {
   grid-column: 1 / span 3;
   grid-row: 3;
-  color: #555;
+  color: #000;
   font-size: 12px;
   font-style: italic;
 }
@@ -1083,7 +1085,7 @@ input {
 
 .counselor-item-point {
   font-weight: 600;
-  color: #333;
+  color: #000;
 }
 
 .counselor-item-row {
@@ -1091,19 +1093,19 @@ input {
   justify-content: space-between;
   align-items: baseline;
   gap: 16px;
-  color: #555;
+  color: #000;
 }
 
 .counselor-item-row span:last-child {
   white-space: nowrap;
   font-weight: 600;
-  color: #222;
+  color: #000;
 }
 
 .counselor-item-endtime {
   align-self: flex-end;
   font-weight: 400;
-  color: #666;
+  color: #000;
   font-size: 12px;
 }
 
@@ -1147,17 +1149,25 @@ input {
   font-weight: 700;
 }
 
-/* タイトル | 歌番号 | 持ち時間 | 終了時間 | 資料 | 担当者 | ペア */
+/* タイトル | 歌番号 | 持ち時間 | 終了時間 | 資料 | 担当者 | ペア
+   名前の列は、9ptで一番長い名前(「(五百旗頭 真次兄弟)」)が折り返さない幅を確保している。
+   ここを狭めると名前が2行になり、行の高さが揃わなくなる */
 .schedule-row {
   display: grid;
-  grid-template-columns: 1fr 26px 26px 48px 92px 92px 92px;
+  grid-template-columns: 1fr 26px 26px 48px 116px 100px 108px;
   align-items: start;
   column-gap: 6px;
-  padding: 1.5px 8px;
-  border-bottom: 1px solid #eee;
+  /* 文字を9ptに上げた分、行の高さが変わらないよう余白と行間を詰めている */
+  padding: 0.5px 8px;
   border-left: 8px solid transparent;
-  font-size: 10px;
-  line-height: 1.35;
+  font-size: 9pt;
+  line-height: 1.15;
+}
+
+/* 罫線ではなく縞模様で行を区切る。週見出しが最初の子なので、
+   偶数番目の子がその週の1行目・3行目…にあたる */
+.schedule-row:nth-child(even) {
+  background: #f0eefc;
 }
 
 .schedule-row > span {
@@ -1165,32 +1175,37 @@ input {
   overflow-wrap: break-word;
 }
 
+/* 番号付きのタイトルは「N．」の分だけぶら下げインデントにして、折り返した2行目以降が
+   番号の後ろに揃うようにする。番号なしのタイトルは最初からその位置から書き始める */
 .schedule-col-title {
   white-space: normal;
+  padding-left: 1.54em;
+  text-indent: -1.54em;
 }
 
 .schedule-col-title-unnumbered {
-  padding-left: 1.54em;
+  text-indent: 0;
 }
 
+/* 印刷して読むものなので、本文はグレーではなく黒で統一する */
 .schedule-col-song,
 .schedule-col-duration {
-  color: #555;
+  color: #000;
   white-space: nowrap;
 }
 
 .schedule-col-endtime {
-  color: #555;
+  color: #000;
   white-space: nowrap;
 }
 
 .schedule-col-material {
-  color: #555;
+  color: #000;
 }
 
 .schedule-col-presenter,
 .schedule-col-partner {
-  color: #222;
+  color: #000;
 }
 
 @media print {
@@ -1216,25 +1231,31 @@ input {
 .assignments-table th,
 .assignments-table td {
   border: none;
-  padding: 2px 8px;
-  font-size: 9px;
+  /* 文字を9ptに上げた分、縞の高さが変わらないよう余白と行間を詰めている */
+  padding: 0.5px 8px;
+  font-size: 9pt;
+  line-height: 1.15;
+  color: #000;
   text-align: left;
 }
 
+/* 生徒・相手は名前が折り返さない最小限の幅に絞り(9ptで最長「(五百旗頭 真次兄弟)」が
+   約108px、余白込みで約124px必要)、空いた分を課題と担当に回している。
+   結果として名前どうしが近づき、右に寄る */
 .assignments-table col.col-title {
-  width: 26%;
+  width: 35%;
 }
 .assignments-table col.col-duration {
   width: 8%;
 }
 .assignments-table col.col-point {
-  width: 16%;
+  width: 22%;
 }
 .assignments-table col.col-student {
-  width: 25%;
+  width: 17.5%;
 }
 .assignments-table col.col-partner {
-  width: 25%;
+  width: 17.5%;
 }
 
 .assignments-table th {
@@ -1253,6 +1274,11 @@ input {
   color: #fff;
   font-weight: 700;
   padding: 3px 8px;
+}
+
+/* 助言者は集会予定表の司会者と同じく、見出しの右端に寄せる */
+.assignments-week-header td:last-child {
+  text-align: right;
 }
 
 .assignments-printed-date {
