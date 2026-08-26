@@ -128,16 +128,19 @@ export function buildTypeSummaries(
 }
 
 /**
- * 候補プールごとに、そのプールを担当した人全員の平均サイクル(日)を求める。
+ * 候補プールごとに、そのプールを担当した現役の人の平均サイクル(日)を求める。
  * 一人ひとりの平均サイクルを出したうえで、その平均をとる。1回しか担当していない人は
  * サイクルが出せないので数に入らない。個人の値と同じ土俵で比べるための基準値。
+ * 休止中の人と名簿にいない人は、今の回り方の基準にはならないので除く。
  */
 export function buildPoolAverageCycles(
   rows: AssignmentHistoryRow[],
   role: AssignmentRole,
   programTypes: ProgramType[],
+  members: Member[],
 ): Map<string, number | null> {
   const poolKeyByTypeId = buildPoolKeyByTypeId(programTypes)
+  const activeIds = new Set(members.filter((m) => m.status === '現役').map((m) => m.id))
 
   // プールキー -> 人id -> 担当日一覧
   const datesByPoolByMember = new Map<string, Map<string, string[]>>()
@@ -145,7 +148,7 @@ export function buildPoolAverageCycles(
   for (const row of rows) {
     if (!row.program_date) continue
     const memberId = role === 'member' ? row.member_id : row.partner_id
-    if (!memberId) continue
+    if (!memberId || !activeIds.has(memberId)) continue
     const typeId =
       role === 'member' ? row.program_type_id : (row.partner_program_type_id ?? row.program_type_id)
     if (!typeId) continue

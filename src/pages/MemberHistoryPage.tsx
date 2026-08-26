@@ -79,12 +79,12 @@ export function MemberHistoryPage() {
   )
   // 全体平均は選んだ人に依らないので、名簿全体の履歴から一度だけ求める
   const poolAveragesAsMember = useMemo(
-    () => buildPoolAverageCycles(historyRows, 'member', programTypes),
-    [historyRows, programTypes],
+    () => buildPoolAverageCycles(historyRows, 'member', programTypes, members),
+    [historyRows, programTypes, members],
   )
   const poolAveragesAsPartner = useMemo(
-    () => buildPoolAverageCycles(historyRows, 'partner', programTypes),
-    [historyRows, programTypes],
+    () => buildPoolAverageCycles(historyRows, 'partner', programTypes, members),
+    [historyRows, programTypes, members],
   )
 
   const neverAssigned = useMemo(
@@ -148,7 +148,7 @@ export function MemberHistoryPage() {
             <p className="history-note">
               候補選択と同じまとめ方です(実演・話などは種別が分かれていても一つとして数えます)。
               平均サイクルは担当日の間隔の平均で、2回以上ある場合のみ出ます。全体平均は、その種別を
-              担当した人それぞれの平均サイクルをならしたものです。
+              担当した現役の人それぞれの平均サイクルをならしたものです。
             </p>
             <div className="history-two-col">
               <TypeSummaryTable
