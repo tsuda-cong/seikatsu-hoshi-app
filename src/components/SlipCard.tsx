@@ -21,7 +21,7 @@ export function SlipCard({ member, partner, venueName, program, teachingPoint }:
       </h1>
       <dl className="slip-fields">
         <dt>氏名:</dt>
-        <dd>{member ? memberDisplayName(member) : '(未割当)'}</dd>
+        <dd className="slip-name">{member ? memberDisplayName(member) : '(未割当)'}</dd>
 
         <dt>相手:</dt>
         <dd>{partner ? `(${memberDisplayName(partner)})` : ''}</dd>

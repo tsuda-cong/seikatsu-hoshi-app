@@ -897,12 +897,16 @@ input {
 
 .slip-grid {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6mm;
-  padding: 8mm;
+  flex-direction: column;
+  align-items: center;
+  gap: 8mm;
   background: #fff;
 }
 
+/* スリップは1枚1ページ。中身はA6(105×148mm)として組み、
+   それを丸ごと拡大してA4いっぱいに使う。こうすると個々の文字や余白を
+   組み直さずに、A6のときの見た目の比率をそのまま保てる。
+   倍率は印刷で使える幅198mm(A4 210mm − 左右余白6mmずつ)÷ 105mm。 */
 .slip-sheet {
   width: 105mm;
   height: 148mm;
@@ -912,37 +916,75 @@ input {
   border: 1px solid #999;
   border-radius: 4px;
   break-inside: avoid;
+  zoom: 1.88;
+  /* 注記を用紙の下端に固定するため縦並びにする(下の margin-top: auto と対) */
+  display: flex;
+  flex-direction: column;
+}
+
+.slip-sheet + .slip-sheet {
+  break-before: page;
+}
+
+@media print {
+  .slip-grid {
+    gap: 0;
+  }
+  .slip-sheet {
+    border: none;
+  }
 }
 
 .slip-title {
   text-align: center;
-  background: #eee;
-  padding: 8px;
-  margin: -6mm -6mm 12px;
+  /* 助言者用紙の見出しと同じ緑 */
+  background: #b7c98f;
+  font-size: 15pt;
+  padding: 10px 8px;
+  margin: -6mm -6mm 16px;
 }
 
 .slip-fields {
   display: grid;
-  grid-template-columns: 70px 1fr;
-  row-gap: 10px;
+  grid-template-columns: 84px 1fr;
+  row-gap: 14px;
   column-gap: 8px;
-  font-size: 13px;
+  font-size: 11pt;
+}
+
+/* 記入欄らしく見えるよう、各項目に点線の下線を引く。
+   項目名と値でグリッドのセルが分かれているが、間の隙間も含めて1本に見えるよう、
+   セルの余白を負のマージンで打ち消してから線を引いている */
+.slip-fields dt,
+.slip-fields dd {
+  border-bottom: 1px dotted #999;
+  padding-bottom: 3px;
 }
 
 .slip-fields dt {
   color: #000;
   white-space: nowrap;
+  /* 値のセルとの間(column-gap)まで線を伸ばす */
+  margin-right: -8px;
+  padding-right: 8px;
 }
 
 .slip-fields dd {
   margin: 0;
 }
 
+/* 氏名は一番目立たせたいので、他より大きく太字にする */
+.slip-fields .slip-name {
+  font-size: 13pt;
+  font-weight: 700;
+}
+
 .slip-footnote {
-  margin-top: 16px;
+  /* 中身の量にかかわらず、常に用紙の下端に置く */
+  margin-top: auto;
   padding-top: 8px;
   border-top: 1px solid #ccc;
-  font-size: 10px;
+  font-size: 9pt;
   color: #000;
   line-height: 1.5;
 }
