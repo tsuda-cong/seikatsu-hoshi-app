@@ -208,7 +208,9 @@ export function ProgramTypesPage() {
     <div className="page">
       <h1>プログラム種別</h1>
       {error && <p className="error-text">{error}</p>}
-      <table className="crud-table">
+      {/* 狭い画面では表を組み替えず、横スクロールで見てもらう */}
+      <div className="crud-table-scroll">
+        <table className="crud-table">
         <thead>
           <tr>
             <th>名称</th>
@@ -268,6 +270,7 @@ export function ProgramTypesPage() {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   )
 }

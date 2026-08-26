@@ -26,11 +26,6 @@ export interface Member {
   created_at: string
 }
 
-export interface Venue {
-  id: string
-  name: string
-}
-
 export interface ProgramType {
   id: string
   name: string
@@ -87,6 +82,5 @@ export interface Assignment {
   program_id: string | null
   member_id: string | null
   partner_id: string | null
-  venue_id: string | null
   created_at: string
 }

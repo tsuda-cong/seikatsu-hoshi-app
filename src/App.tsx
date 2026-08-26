@@ -6,13 +6,11 @@ import { Layout } from './components/Layout'
 import { LoginPage } from './pages/LoginPage'
 import { WeeklyProgramPage } from './pages/WeeklyProgramPage'
 import { MembersPage } from './pages/MembersPage'
-import { VenuesPage } from './pages/VenuesPage'
 import { ProgramTypesPage } from './pages/ProgramTypesPage'
 import { SongsPage } from './pages/SongsPage'
 import { TeachingPointsPage } from './pages/TeachingPointsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ReportsPage } from './pages/ReportsPage'
-import { SlipPrintPage } from './pages/print/SlipPrintPage'
 import { SlipsRangePrintPage } from './pages/print/SlipsRangePrintPage'
 import { ChairmanPrintPage } from './pages/print/ChairmanPrintPage'
 import { CounselorPrintPage } from './pages/print/CounselorPrintPage'
@@ -31,7 +29,6 @@ function AdminArea() {
     <ProtectedRoute>
       <AppDataProvider>
         <Routes>
-          <Route path="/print/slip/:assignmentId" element={<SlipPrintPage />} />
           <Route path="/print/slips/:from/:to" element={<SlipsRangePrintPage />} />
           <Route path="/print/chairman/:from/:to" element={<ChairmanPrintPage />} />
           <Route path="/print/counselor/:from/:to" element={<CounselorPrintPage />} />
@@ -44,7 +41,6 @@ function AdminArea() {
                 <Routes>
                   <Route path="/" element={<WeeklyProgramPage />} />
                   <Route path="/members" element={<MembersPage />} />
-                  <Route path="/venues" element={<VenuesPage />} />
                   <Route path="/program-types" element={<ProgramTypesPage />} />
                   <Route path="/songs" element={<SongsPage />} />
                   <Route path="/teaching-points" element={<TeachingPointsPage />} />

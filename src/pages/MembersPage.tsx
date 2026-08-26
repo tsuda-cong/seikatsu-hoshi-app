@@ -220,7 +220,9 @@ export function MembersPage() {
         )}
       </div>
       {error && <p className="error-text">{error}</p>}
-      <table className="crud-table">
+      {/* 狭い画面では表を組み替えず、横スクロールで見てもらう */}
+      <div className="crud-table-scroll">
+        <table className="crud-table">
         <thead>
           <tr>
             <th>姓</th>
@@ -404,6 +406,7 @@ export function MembersPage() {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   )
 }

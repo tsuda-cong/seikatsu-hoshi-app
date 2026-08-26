@@ -4,12 +4,11 @@ import type { Member, Program, ProgramType, TeachingPoint } from '../types/domai
 interface SlipCardProps {
   member: Member | null
   partner: Member | null
-  venueName: string | null
   program: Program & { program_types: ProgramType | null }
   teachingPoint: TeachingPoint | null
 }
 
-export function SlipCard({ member, partner, venueName, program, teachingPoint }: SlipCardProps) {
+export function SlipCard({ member, partner, program, teachingPoint }: SlipCardProps) {
   const programType = program.program_types
 
   return (
@@ -28,9 +27,6 @@ export function SlipCard({ member, partner, venueName, program, teachingPoint }:
 
         <dt>日付:</dt>
         <dd>{program.date.replaceAll('-', '/')}</dd>
-
-        <dt>会場:</dt>
-        <dd>{venueName ?? ''}</dd>
 
         <dt>担当部分:</dt>
         <dd>

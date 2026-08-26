@@ -1,11 +1,10 @@
 import { supabase } from './supabaseClient'
-import type { Assignment, Member, Program, ProgramType, Venue } from '../types/domain'
+import type { Assignment, Member, Program, ProgramType } from '../types/domain'
 
 export type ProgramWithType = Program & { program_types: ProgramType | null }
 export type AssignmentWithRelations = Assignment & {
   member: Member | null
   partner: Member | null
-  venue: Venue | null
 }
 
 export interface RangeData {
@@ -32,7 +31,7 @@ export async function fetchRangeData(from: string, to: string): Promise<RangeDat
   if (programIds.length > 0) {
     const { data: assignmentData, error: assignmentError } = await supabase
       .from('assignments')
-      .select('*, member:members!member_id(*), partner:members!partner_id(*), venue:venues(*)')
+      .select('*, member:members!member_id(*), partner:members!partner_id(*)')
       .in('program_id', programIds)
       .returns<AssignmentWithRelations[]>()
     if (assignmentError) throw assignmentError

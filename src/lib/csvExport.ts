@@ -2,7 +2,7 @@ import { memberDisplayName } from './candidates'
 import { fetchRangeData } from './printData'
 import type { TeachingPoint } from '../types/domain'
 
-const HEADERS = ['日付', '区分', 'プログラム', '担当者', 'ペア', '会場', '課題'] as const
+const HEADERS = ['日付', '区分', 'プログラム', '担当者', 'ペア', '課題'] as const
 
 /** カンマ・改行・引用符を含む値でも壊れないように囲む */
 function escapeCell(value: string): string {
@@ -34,7 +34,6 @@ export async function buildProgramCsv(from: string, to: string, teachingPoints: 
         program.title ?? program.program_types?.name ?? '',
         assignment?.member ? memberDisplayName(assignment.member) : '',
         assignment?.partner ? memberDisplayName(assignment.partner) : '',
-        assignment?.venue?.name ?? '',
         teachingPoint ? `${teachingPoint.code} ${teachingPoint.title}` : '',
       ])
     }

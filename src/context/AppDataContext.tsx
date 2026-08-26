@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import type { AssignmentHistoryRow } from '../lib/candidates'
-import type { Member, ProgramType, Song, TeachingPoint, Venue } from '../types/domain'
+import type { Member, ProgramType, Song, TeachingPoint } from '../types/domain'
 
 const DEFAULT_SETTINGS: Record<string, string> = {
   meeting_start_time: '19:00',
@@ -22,7 +22,6 @@ function extractErrorMessage(e: unknown): string {
 
 interface AppDataContextValue {
   members: Member[]
-  venues: Venue[]
   programTypes: ProgramType[]
   songs: Song[]
   teachingPoints: TeachingPoint[]
@@ -42,7 +41,6 @@ const AppDataContext = createContext<AppDataContextValue | undefined>(undefined)
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [members, setMembers] = useState<Member[]>([])
-  const [venues, setVenues] = useState<Venue[]>([])
   const [programTypes, setProgramTypes] = useState<ProgramType[]>([])
   const [songs, setSongs] = useState<Song[]>([])
   const [teachingPoints, setTeachingPoints] = useState<TeachingPoint[]>([])
@@ -84,9 +82,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const loadAll = useCallback(async () => {
-    const [membersRes, venuesRes, programTypesRes, songsRes, teachingPointsRes, settingsRes] = await Promise.all([
+    const [membersRes, programTypesRes, songsRes, teachingPointsRes, settingsRes] = await Promise.all([
       supabase.from('members').select('*').order('last_name_kana', { ascending: true }),
-      supabase.from('venues').select('*').order('name', { ascending: true }),
       supabase.from('program_types').select('*'),
       supabase.from('songs').select('*').order('number', { ascending: true }),
       supabase.from('teaching_points').select('*').order('order_no', { ascending: true }),
@@ -95,7 +92,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     ])
 
     if (membersRes.error) throw membersRes.error
-    if (venuesRes.error) throw venuesRes.error
     if (programTypesRes.error) throw programTypesRes.error
     if (songsRes.error) throw songsRes.error
     if (teachingPointsRes.error) throw teachingPointsRes.error
@@ -111,7 +107,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (coreDataAllEmpty) throw new Error('データを取得できませんでした')
 
     setMembers(membersRes.data ?? [])
-    setVenues(venuesRes.data ?? [])
     setProgramTypes(programTypesRes.data ?? [])
     setSongs(songsRes.data ?? [])
     setTeachingPoints(teachingPointsRes.data ?? [])
@@ -152,7 +147,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     <AppDataContext.Provider
       value={{
         members,
-        venues,
         programTypes,
         songs,
         teachingPoints,

@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
 import {
@@ -11,15 +10,15 @@ import {
   PRAYER_TYPE_NAME,
 } from '../lib/candidates'
 import { todayString } from '../lib/localDate'
+import { hasSectionBand, sectionColor, sectionTextColor } from '../lib/printData'
 import { AssignmentCell } from '../components/AssignmentCell'
 import { AutocompleteSelect } from '../components/AutocompleteSelect'
-import type { Assignment, Member, Program, ProgramType, Song, TeachingPoint, Venue } from '../types/domain'
+import type { Assignment, Member, Program, ProgramType, Song, TeachingPoint } from '../types/domain'
 
 type ProgramWithType = Program & { program_types: ProgramType | null }
 type AssignmentWithRelations = Assignment & {
   member: Member | null
   partner: Member | null
-  venue: Venue | null
 }
 
 interface ProgramDraft {
@@ -71,10 +70,12 @@ function currentWeekOf(dates: string[]): string | null {
 
 const SELECTED_DATE_KEY = 'weeklyProgram.selectedDate'
 
+/** 区分の見出しを出さない区分(1件だけで内容から自明なため) */
+const OPENING_SECTION = '開会'
+
 export function WeeklyProgramPage() {
   const {
     members,
-    venues,
     programTypes,
     songs,
     teachingPoints,
@@ -180,7 +181,7 @@ export function WeeklyProgramPage() {
 
         const { data: assignmentData, error: assignmentError } = await supabase
           .from('assignments')
-          .select('*, member:members!member_id(*), partner:members!partner_id(*), venue:venues(*)')
+          .select('*, member:members!member_id(*), partner:members!partner_id(*)')
           .in('program_id', programIds)
           .returns<AssignmentWithRelations[]>()
 
@@ -444,7 +445,7 @@ export function WeeklyProgramPage() {
 
   async function upsertAssignment(
     programId: string,
-    patch: Partial<Pick<Assignment, 'member_id' | 'partner_id' | 'venue_id'>>,
+    patch: Partial<Pick<Assignment, 'member_id' | 'partner_id'>>,
   ) {
     setSavingProgramId(programId)
     setError(null)
@@ -518,25 +519,14 @@ export function WeeklyProgramPage() {
     setError(null)
     try {
       const maxOrder = programs.reduce((max, p) => Math.max(max, p.order_no ?? 0), 0)
-      const { data: created, error } = await supabase
-        .from('programs')
-        .insert({
-          date: selectedDate,
-          order_no: maxOrder + 1,
-          ...draftToPatch(newRow),
-        })
-        .select()
-        .single()
+      const { error } = await supabase.from('programs').insert({
+        date: selectedDate,
+        order_no: maxOrder + 1,
+        ...draftToPatch(newRow),
+      })
       if (error) throw error
 
-      const defaultVenue = venues.find((v) => v.name === '本会場') ?? venues[0]
-      if (created && defaultVenue) {
-        const { error: assignmentError } = await supabase
-          .from('assignments')
-          .insert({ program_id: created.id, venue_id: defaultVenue.id })
-        if (assignmentError) throw assignmentError
-      }
-
+      // 担当者を選んだ時点で割り当てを作るため、ここでは空の割り当ては作らない
       setNewRow(EMPTY_DRAFT)
       await loadWeek(selectedDate)
       await loadAvailableDates()
@@ -601,14 +591,7 @@ export function WeeklyProgramPage() {
       const { data: created, error } = await supabase.from('programs').insert(rows).select()
       if (error) throw error
 
-      const defaultVenue = venues.find((v) => v.name === '本会場') ?? venues[0]
-      if (created && created.length > 0 && defaultVenue) {
-        const { error: assignmentError } = await supabase
-          .from('assignments')
-          .insert(created.map((p) => ({ program_id: p.id, venue_id: defaultVenue.id })))
-        if (assignmentError) throw assignmentError
-      }
-
+      // 担当者を選んだ時点で割り当てを作るため、ここでは空の割り当ては作らない
       setPasteText('')
       setPasteResult({ added: created?.length ?? 0, warnings })
       await loadWeek(selectedDate)
@@ -731,12 +714,13 @@ export function WeeklyProgramPage() {
     <div className="page">
       <h1>週ごとのプログラム</h1>
 
+      {/* 狭い画面では記号だけになる(「最初」などの語は date-nav-word がCSSで隠す) */}
       <div className="date-nav">
-        <button type="button" onClick={goFirst} disabled={!hasPrev}>
-          《 最初
+        <button type="button" onClick={goFirst} disabled={!hasPrev} title="最初の週">
+          《<span className="date-nav-word"> 最初</span>
         </button>
-        <button type="button" onClick={goPrev} disabled={!hasPrev}>
-          ← 前週
+        <button type="button" onClick={goPrev} disabled={!hasPrev} title="前週">
+          〈<span className="date-nav-word"> 前週</span>
         </button>
         <input
           type="date"
@@ -751,14 +735,14 @@ export function WeeklyProgramPage() {
             ({formatWeekday(selectedDate)})
           </span>
         )}
-        <button type="button" onClick={goCurrentWeek} disabled={isCurrentWeek}>
+        <button type="button" onClick={goCurrentWeek} disabled={isCurrentWeek} title="今週">
           今週
         </button>
-        <button type="button" onClick={goNext} disabled={!hasNext}>
-          次週 →
+        <button type="button" onClick={goNext} disabled={!hasNext} title="次週">
+          <span className="date-nav-word">次週 </span>〉
         </button>
-        <button type="button" onClick={goLast} disabled={!hasNext}>
-          最後 》
+        <button type="button" onClick={goLast} disabled={!hasNext} title="最後の週">
+          <span className="date-nav-word">最後 </span>》
         </button>
 
         {!manageMode && (openingProgram || closingProgram) && (
@@ -819,7 +803,8 @@ export function WeeklyProgramPage() {
         <table className="program-table">
           <thead>
             <tr>
-              <th>区分</th>
+              {/* 割り当て画面では区分は列にせず、連続する先頭のプログラムの前に見出し行として出す */}
+              {manageMode && <th>区分</th>}
               <th>プログラム</th>
               <th>時間</th>
               {manageMode ? (
@@ -828,8 +813,6 @@ export function WeeklyProgramPage() {
                 <>
                   <th>担当者</th>
                   <th>ペア</th>
-                  <th>会場</th>
-                  <th>スリップ</th>
                 </>
               )}
             </tr>
@@ -996,16 +979,39 @@ export function WeeklyProgramPage() {
                     })
                   : []
 
+              // 区分は同じ値が続くため列にはせず、切り替わった最初の行の前に見出しを出す。
+              // 「開会」は1件だけで自明なので見出しを出さない
+              const section = program.section ?? ''
+              const previousSection = index > 0 ? (sortedPrograms[index - 1].section ?? '') : ''
+              const showSectionHeading = !!section && section !== previousSection && section !== OPENING_SECTION
+
               return (
-                <tr key={program.id}>
-                  <td>{program.section ?? ''}</td>
-                  <td>
+                // data-label は、画面が狭いときに表を1件ずつのカードに組み替えて
+                // 表示するための見出し(src/index.css の .program-table を参照)
+                <Fragment key={program.id}>
+                {showSectionHeading && (
+                  <tr className="program-section-row">
+                    {/* 帯の配色は帳票(司会進行用紙)と揃える。配色のない区分は既定の見た目のまま */}
+                    <td
+                      colSpan={4}
+                      style={
+                        hasSectionBand(section)
+                          ? { background: sectionColor(section), color: sectionTextColor(section) }
+                          : undefined
+                      }
+                    >
+                      {section}
+                    </td>
+                  </tr>
+                )}
+                <tr>
+                  <td data-label="プログラム">
+                    {/* 種別はプログラム編集モードでのみ表示する(割り当て画面では冗長なため) */}
                     <div className="program-title">{program.title ?? programType?.name}</div>
-                    {programType && <div className="program-type-name">{programType.name}</div>}
                     {renderProgramDetails(program)}
                   </td>
-                  <td>{program.duration_minutes ? `${program.duration_minutes}分` : ''}</td>
-                  <td>
+                  <td data-label="時間">{program.duration_minutes ? `${program.duration_minutes}分` : ''}</td>
+                  <td data-label="担当者">
                     {programType ? (
                       <AssignmentCell
                         currentMember={assignment?.member}
@@ -1023,7 +1029,8 @@ export function WeeklyProgramPage() {
                       <span className="assignment-disabled">未設定のプログラム種別</span>
                     )}
                   </td>
-                  <td>
+                  {/* ペア不要のプログラムでは、狭い画面でカードを短くするため行ごと畳む */}
+                  <td data-label="ペア" className={programType?.needs_partner ? undefined : 'cell-not-applicable'}>
                     {programType?.needs_partner ? (
                       <AssignmentCell
                         currentMember={assignment?.partner}
@@ -1041,28 +1048,8 @@ export function WeeklyProgramPage() {
                       <span className="assignment-disabled">-</span>
                     )}
                   </td>
-                  <td>
-                    <select
-                      value={assignment?.venue_id ?? ''}
-                      disabled={saving}
-                      onChange={(e) => upsertAssignment(program.id, { venue_id: e.target.value || null })}
-                    >
-                      <option value="">未設定</option>
-                      {venues.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.name}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
-                    {assignment?.id && (
-                      <Link to={`/print/slip/${assignment.id}`} target="_blank" rel="noopener noreferrer">
-                        印刷
-                      </Link>
-                    )}
-                  </td>
                 </tr>
+                </Fragment>
               )
             })}
 

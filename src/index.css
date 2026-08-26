@@ -116,6 +116,18 @@ input {
   font-weight: 600;
 }
 
+/* ハンバーガーは狭い画面専用。広い画面では出さない */
+.app-nav-toggle {
+  display: none;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-h);
+  font-size: 18px;
+  line-height: 1;
+}
+
 /* ---- generic crud table ---- */
 
 .crud-search {
@@ -429,6 +441,18 @@ input {
 }
 
 .program-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* 区分の見出し行(連続する同じ区分の先頭にだけ差し込む)。
+   帯の色は帳票と揃えるため tsx 側でインライン指定する */
+.program-section-row td {
+  background: var(--accent-bg);
+  color: var(--text-h);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  padding: 5px 12px;
   border-bottom: none;
 }
 
@@ -1433,4 +1457,182 @@ input {
   margin: 4px 0 0;
   padding-left: 18px;
   color: var(--danger);
+}
+
+/* ---- 画面が狭いとき(スマートフォン) ----
+   スマートフォンでは主に割り当ての確認を行うため、読みやすさを優先する。
+   帳票(印刷用ページ)はA4固定なので、ここでは対象にしない。 */
+@media (max-width: 700px) {
+  .page {
+    padding: 16px 12px 48px;
+  }
+
+  /* ナビはハンバーガーに畳む。開いたときだけ縦に並べて表示する */
+  .app-header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .app-nav-toggle {
+    display: block;
+    order: -1;
+  }
+
+  .app-nav {
+    display: none;
+    order: 3;
+    width: 100%;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .app-nav.is-open {
+    display: flex;
+  }
+
+  .app-nav-link {
+    padding: 10px 12px;
+    font-size: 16px;
+  }
+
+  /* 移動ボタンを記号だけにして、日付までを1行に収める。
+     司会者などは幅100%を持たせて次の行に送る(そのため折り返しは有効のまま) */
+  .date-nav {
+    gap: 4px;
+  }
+
+  .date-nav-word {
+    display: none;
+  }
+
+  .date-nav button {
+    padding: 6px 8px;
+    white-space: nowrap;
+  }
+
+  .date-nav input[type='date'] {
+    /* 標準の入力欄なので表示形式は変えられない。幅だけ詰める */
+    padding: 6px 4px 6px 26px;
+    font-size: 13px;
+    min-width: 0;
+  }
+
+  .date-nav input[type='date']::-webkit-calendar-picker-indicator {
+    left: 5px;
+  }
+
+  .date-nav-weekday {
+    font-size: 13px;
+  }
+
+  /* 司会者とプログラム編集は日付ナビの下に回す */
+  .chairman-field,
+  .manage-toggle {
+    order: 10;
+  }
+
+  .chairman-field {
+    width: 100%;
+  }
+
+  .manage-toggle {
+    margin-left: 0;
+  }
+
+  /* 週ごとのプログラムは列が多く、狭い画面では潰れて読めなくなる。
+     1プログラムを1枚のカードとして縦に積み、各項目に見出しを添える
+     (見出しの文言は tsx 側の data-label) */
+  .program-table,
+  .program-table thead,
+  .program-table tbody,
+  .program-table tr,
+  .program-table td {
+    display: block;
+    width: auto;
+  }
+
+  .program-table thead {
+    display: none;
+  }
+
+  .program-table tr {
+    margin-bottom: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  /* カードの先頭(プログラム名)に色を敷き、1枚ずつの区切りを分かりやすくする */
+  .program-table td[data-label='プログラム'] {
+    background: var(--accent-bg);
+  }
+
+  /* 区分はカード枠を付けず、続くカード群の見出しの帯として置く */
+  .program-table tr.program-section-row {
+    margin: 18px 0 8px;
+    border: none;
+    background: none;
+  }
+
+  .program-table .program-section-row td {
+    display: block;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+
+  .program-table td {
+    display: grid;
+    grid-template-columns: 5.5em 1fr;
+    align-items: start;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .program-table tr td:last-child {
+    border-bottom: none;
+  }
+
+  /* 中身が空・該当なしの項目は行ごと隠して、カードを短くする */
+  .program-table td:empty,
+  .program-table td.cell-not-applicable {
+    display: none;
+  }
+
+  .program-table td::before {
+    content: attr(data-label);
+    color: var(--text);
+    font-size: 12px;
+    padding-top: 2px;
+  }
+
+  /* 見出しを持たないセル(編集モードの操作列など)は横並びのまま */
+  .program-table td:not([data-label]) {
+    display: block;
+  }
+
+  .program-table td:not([data-label])::before {
+    content: none;
+  }
+
+  /* 名簿など編集用の表は、組み替えずに横スクロールで見てもらう */
+  .crud-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .crud-table {
+    min-width: 700px;
+  }
+
+  /* 帳票印刷ページは、メモ欄を下に回す */
+  .reports-memo {
+    width: 100%;
+  }
+
+  .reports-memo-textarea {
+    min-height: 200px;
+  }
 }

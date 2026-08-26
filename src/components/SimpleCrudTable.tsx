@@ -106,6 +106,8 @@ export function SimpleCrudTable<T extends { id: string }>({
         />
       )}
       {error && <p className="error-text">{error}</p>}
+      {/* 狭い画面では表を組み替えず、横スクロールで見てもらう */}
+      <div className="crud-table-scroll">
       <table className="crud-table">
         <thead>
           <tr>
@@ -172,6 +174,7 @@ export function SimpleCrudTable<T extends { id: string }>({
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   )
 }

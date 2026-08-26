@@ -4,13 +4,12 @@ import { supabase } from '../../lib/supabaseClient'
 import { useAppData } from '../../context/AppDataContext'
 import { PrintToolbar } from '../../components/PrintToolbar'
 import { SlipCard } from '../../components/SlipCard'
-import type { Assignment, Member, Program, ProgramType, Venue } from '../../types/domain'
+import type { Assignment, Member, Program, ProgramType } from '../../types/domain'
 
 type ProgramWithType = Program & { program_types: ProgramType | null }
 type AssignmentWithRelations = Assignment & {
   member: Member | null
   partner: Member | null
-  venue: Venue | null
 }
 
 export function SlipsRangePrintPage() {
@@ -46,7 +45,7 @@ export function SlipsRangePrintPage() {
         }
         const { data: assignmentData, error: assignmentError } = await supabase
           .from('assignments')
-          .select('*, member:members!member_id(*), partner:members!partner_id(*), venue:venues(*)')
+          .select('*, member:members!member_id(*), partner:members!partner_id(*)')
           .in('program_id', programIds)
           .returns<AssignmentWithRelations[]>()
         if (assignmentError) throw assignmentError
@@ -76,7 +75,6 @@ export function SlipsRangePrintPage() {
             key={program.id}
             member={assignment?.member ?? null}
             partner={assignment?.partner ?? null}
-            venueName={assignment?.venue?.name ?? null}
             program={program}
             teachingPoint={
               program.teaching_point_id
