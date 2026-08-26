@@ -801,13 +801,33 @@ export function WeeklyProgramPage() {
         <div className="center-message">読み込み中...</div>
       ) : (
         <table className="program-table">
+          {/* 列幅を固定する。指定しないと、候補リストを開いたときに担当者・ペアの列が
+              広がって表全体がずれ、周囲の行が動いて見える */}
+          <colgroup>
+            {manageMode ? (
+              <>
+                <col className="col-section" />
+                <col />
+                <col className="col-duration" />
+                <col className="col-row-actions" />
+              </>
+            ) : (
+              <>
+                <col className="col-program" />
+                <col className="col-duration" />
+                <col className="col-assignee" />
+                {/* 余った幅はこの列が受け取る。担当者・ペアの見た目の幅は揃えたままにする */}
+                <col />
+              </>
+            )}
+          </colgroup>
           <thead>
             <tr>
               {/* 割り当て画面では区分は列にせず、連続する先頭のプログラムの前に見出し行として出す */}
               {manageMode && <th>区分</th>}
               {/* プログラム名の列は内容から自明なので見出しを置かない(狭い画面で幅を稼ぐため) */}
               <th />
-              <th>時間</th>
+              <th className="duration-cell">時間</th>
               {manageMode ? (
                 <th>操作</th>
               ) : (
@@ -899,7 +919,7 @@ export function WeeklyProgramPage() {
                       {programType && <div className="program-type-name">{programType.name}</div>}
                       {renderProgramDetails(program)}
                     </td>
-                    <td>{program.duration_minutes ? `${program.duration_minutes}分` : ''}</td>
+                    <td className="duration-cell">{program.duration_minutes ? `${program.duration_minutes}分` : ''}</td>
                     <td className="row-actions">
                       <button type="button" onClick={() => moveProgram(program, -1)} disabled={index === 0}>
                         ↑
@@ -1012,7 +1032,9 @@ export function WeeklyProgramPage() {
                     <div className="program-title">{program.title ?? programType?.name}</div>
                     {renderProgramDetails(program)}
                   </td>
-                  <td data-label="時間">{program.duration_minutes ? `${program.duration_minutes}分` : ''}</td>
+                  <td className="duration-cell" data-label="時間">
+                    {program.duration_minutes ? `${program.duration_minutes}分` : ''}
+                  </td>
                   <td data-label="担当者">
                     {programType ? (
                       <AssignmentCell

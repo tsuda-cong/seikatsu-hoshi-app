@@ -425,6 +425,44 @@ input {
   border-radius: 10px;
 }
 
+/* 幅を指定しない列が余りを受け取る(割り当て画面は右端、編集モードはプログラム名の列) */
+.program-table {
+  table-layout: fixed;
+}
+
+/* 実測でいちばん長い説明文(約397px)が収まる幅 */
+.program-table .col-program {
+  width: 430px;
+}
+
+.program-table .col-duration {
+  width: 70px;
+}
+
+/* 数値なので右寄せ。見出しも揃える */
+.program-table th.duration-cell,
+.program-table td.duration-cell {
+  text-align: right;
+}
+
+.program-table .col-assignee {
+  width: 252px;
+}
+
+/* 余りを受け取る列に入っても、担当者・ペアの入力欄は同じ幅で揃える */
+.program-table .assignment-value,
+.program-table .candidate-combobox {
+  max-width: 228px;
+}
+
+.program-table .col-section {
+  width: 150px;
+}
+
+.program-table .col-row-actions {
+  width: 210px;
+}
+
 .program-table th,
 .program-table td {
   text-align: left;
@@ -563,6 +601,15 @@ input {
   border-top: none;
   border-radius: 0 0 6px 6px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  /* 「前回: 2026/6/11(11週間前)・4．会話を始める」が折り返さない幅。
+     絶対配置なので、列幅より広げても表のレイアウトには影響しない */
+  min-width: 320px;
+}
+
+/* 右端の列では画面外にはみ出さないよう、左に向かって広げる */
+.program-table td:last-child .candidate-list {
+  left: auto;
+  right: 0;
 }
 
 .candidate-list li + li {
@@ -1551,7 +1598,8 @@ input {
     width: auto;
   }
 
-  .program-table thead {
+  .program-table thead,
+  .program-table colgroup {
     display: none;
   }
 
@@ -1601,6 +1649,17 @@ input {
 
   .program-table tr td:last-child {
     border-bottom: none;
+  }
+
+  /* カードでは項目名の右に値を並べるので、右寄せは解除する */
+  .program-table td.duration-cell {
+    text-align: left;
+  }
+
+  /* PCで列幅を揃えるための上限は、カードでは不要(幅いっぱいに使う) */
+  .program-table .assignment-value,
+  .program-table .candidate-combobox {
+    max-width: none;
   }
 
   /* 中身が空・該当なしの項目は行ごと隠して、カードを短くする */
