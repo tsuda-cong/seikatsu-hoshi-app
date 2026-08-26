@@ -7,8 +7,10 @@ import {
   buildMemberTimeline,
   buildNeverAssignedPools,
   buildPairSummaries,
+  buildPoolAverageCycles,
   buildTypeSummaries,
   formatCycle,
+  formatCycleDelta,
   formatDate,
   formatRelativeWeeks,
   type AssignmentRole,
@@ -75,6 +77,16 @@ export function MemberHistoryPage() {
     () => buildTypeSummaries(entries, 'partner', programTypes, today),
     [entries, programTypes, today],
   )
+  // 全体平均は選んだ人に依らないので、名簿全体の履歴から一度だけ求める
+  const poolAveragesAsMember = useMemo(
+    () => buildPoolAverageCycles(historyRows, 'member', programTypes),
+    [historyRows, programTypes],
+  )
+  const poolAveragesAsPartner = useMemo(
+    () => buildPoolAverageCycles(historyRows, 'partner', programTypes),
+    [historyRows, programTypes],
+  )
+
   const neverAssigned = useMemo(
     () => (member ? buildNeverAssignedPools(member, entries, programTypes) : []),
     [member, entries, programTypes],
@@ -135,11 +147,22 @@ export function MemberHistoryPage() {
             <h2>種別ごと</h2>
             <p className="history-note">
               候補選択と同じまとめ方です(実演・話などは種別が分かれていても一つとして数えます)。
-              平均サイクルは担当日の間隔の平均で、2回以上ある場合のみ出ます。
+              平均サイクルは担当日の間隔の平均で、2回以上ある場合のみ出ます。全体平均は、その種別を
+              担当した人それぞれの平均サイクルをならしたものです。
             </p>
             <div className="history-two-col">
-              <TypeSummaryTable title="担当者として" summaries={asMemberSummaries} today={today} />
-              <TypeSummaryTable title="ペアとして" summaries={asPartnerSummaries} today={today} />
+              <TypeSummaryTable
+                title="担当者として"
+                summaries={asMemberSummaries}
+                poolAverages={poolAveragesAsMember}
+                today={today}
+              />
+              <TypeSummaryTable
+                title="ペアとして"
+                summaries={asPartnerSummaries}
+                poolAverages={poolAveragesAsPartner}
+                today={today}
+              />
             </div>
           </section>
 
@@ -315,10 +338,12 @@ function ProfileBlock({
 function TypeSummaryTable({
   title,
   summaries,
+  poolAverages,
   today,
 }: {
   title: string
   summaries: TypeSummary[]
+  poolAverages: Map<string, number | null>
   today: string
 }) {
   return (
@@ -335,6 +360,7 @@ function TypeSummaryTable({
               <th>前回</th>
               <th>今後</th>
               <th className="history-num">平均サイクル</th>
+              <th className="history-num">全体平均</th>
             </tr>
           </thead>
           <tbody>
@@ -351,7 +377,22 @@ function TypeSummaryTable({
                   {s.nextDate ? <DateWithRelative date={s.nextDate} today={today} future /> : '―'}
                 </td>
                 <td data-label="平均サイクル" className="history-num">
-                  {formatCycle(s.averageCycleDays)}
+                  {/* 狭い画面ではセルがグリッドになるため、値と差は一つの要素にまとめる */}
+                  <span className="history-cyclecell">
+                    <span className="history-cycle">{formatCycle(s.averageCycleDays)}</span>
+                    {(() => {
+                      const delta = formatCycleDelta(s.averageCycleDays, poolAverages.get(s.key))
+                      if (!delta) return null
+                      return (
+                        <span className={`history-cycle-delta ${delta.shorter ? 'is-shorter' : 'is-longer'}`}>
+                          {delta.text}
+                        </span>
+                      )
+                    })()}
+                  </span>
+                </td>
+                <td data-label="全体平均" className="history-num history-cycle-pool">
+                  {formatCycle(poolAverages.get(s.key) ?? null)}
                 </td>
               </tr>
             ))}

@@ -1700,6 +1700,45 @@ input {
   display: block;
 }
 
+.history-cyclecell {
+  display: block;
+}
+
+.history-cycle {
+  display: block;
+  white-space: nowrap;
+}
+
+/* 全体平均との差。短い=よく回ってきている、長い=間が空いている */
+.history-cycle-delta {
+  display: block;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.history-cycle-delta.is-shorter {
+  color: #2f8f4e;
+}
+
+.history-cycle-delta.is-longer {
+  color: #b8791f;
+}
+
+@media (prefers-color-scheme: dark) {
+  .history-cycle-delta.is-shorter {
+    color: #6fc98c;
+  }
+
+  .history-cycle-delta.is-longer {
+    color: #e0a94a;
+  }
+}
+
+.history-cycle-pool {
+  color: var(--text);
+  opacity: 0.8;
+}
+
 .history-date {
   display: block;
   color: var(--text-h);
@@ -2016,11 +2055,14 @@ input {
   }
 
   .history-date,
-  .history-relative {
+  .history-relative,
+  .history-cycle,
+  .history-cycle-delta {
     display: inline;
   }
 
-  .history-relative {
+  .history-relative,
+  .history-cycle-delta {
     margin-left: 6px;
   }
 }

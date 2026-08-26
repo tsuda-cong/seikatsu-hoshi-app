@@ -127,6 +127,53 @@ export function buildTypeSummaries(
   return summaries
 }
 
+/**
+ * 候補プールごとに、そのプールを担当した人全員の平均サイクル(日)を求める。
+ * 一人ひとりの平均サイクルを出したうえで、その平均をとる。1回しか担当していない人は
+ * サイクルが出せないので数に入らない。個人の値と同じ土俵で比べるための基準値。
+ */
+export function buildPoolAverageCycles(
+  rows: AssignmentHistoryRow[],
+  role: AssignmentRole,
+  programTypes: ProgramType[],
+): Map<string, number | null> {
+  const poolKeyByTypeId = buildPoolKeyByTypeId(programTypes)
+
+  // プールキー -> 人id -> 担当日一覧
+  const datesByPoolByMember = new Map<string, Map<string, string[]>>()
+
+  for (const row of rows) {
+    if (!row.program_date) continue
+    const memberId = role === 'member' ? row.member_id : row.partner_id
+    if (!memberId) continue
+    const typeId =
+      role === 'member' ? row.program_type_id : (row.partner_program_type_id ?? row.program_type_id)
+    if (!typeId) continue
+
+    const key = poolKeyByTypeId.get(typeId) ?? typeId
+    let byMember = datesByPoolByMember.get(key)
+    if (!byMember) {
+      byMember = new Map()
+      datesByPoolByMember.set(key, byMember)
+    }
+    const list = byMember.get(memberId)
+    if (list) list.push(row.program_date)
+    else byMember.set(memberId, [row.program_date])
+  }
+
+  const result = new Map<string, number | null>()
+  for (const [key, byMember] of datesByPoolByMember) {
+    const cycles: number[] = []
+    for (const dates of byMember.values()) {
+      if (dates.length < 2) continue
+      dates.sort()
+      cycles.push(daysBetween(dates[dates.length - 1], dates[0]) / (dates.length - 1))
+    }
+    result.set(key, cycles.length > 0 ? cycles.reduce((a, b) => a + b, 0) / cycles.length : null)
+  }
+  return result
+}
+
 /** 本人が担当者候補の条件を満たす種別かどうか(getEligibleCandidatesの絞り込みと同じ条件) */
 function isEligibleFor(member: Member, programType: ProgramType): boolean {
   if (member.status !== '現役') return false
@@ -226,4 +273,19 @@ export function formatCycle(averageCycleDays: number | null): string {
   if (averageCycleDays === null) return '―'
   const weeks = averageCycleDays / 7
   return `約${weeks.toFixed(1)}週`
+}
+
+/**
+ * 全体平均との差。マイナスなら全体より短い間隔で回ってきている(=よく当たっている)。
+ * 差がごくわずかなときは、意味のある差ではないので出さない。
+ */
+export function formatCycleDelta(
+  averageCycleDays: number | null,
+  poolAverageDays: number | null | undefined,
+): { text: string; shorter: boolean } | null {
+  if (averageCycleDays === null || poolAverageDays === null || poolAverageDays === undefined) return null
+  const deltaWeeks = (averageCycleDays - poolAverageDays) / 7
+  if (Math.abs(deltaWeeks) < 0.1) return null
+  const shorter = deltaWeeks < 0
+  return { text: `全体より${Math.abs(deltaWeeks).toFixed(1)}週${shorter ? '短い' : '長い'}`, shorter }
 }
