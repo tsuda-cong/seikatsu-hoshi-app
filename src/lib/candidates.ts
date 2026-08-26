@@ -9,6 +9,8 @@ export interface AssignmentHistoryRow {
   partner_program_type_id: string | null
   /** その回のプログラムに課題(教励課題)が設定されていたか */
   has_teaching_point: boolean
+  /** その回の課題(教励課題)のid(担当履歴の表示用) */
+  teaching_point_id: string | null
   /** そのプログラムの種別名(表示用) */
   program_type_name: string | null
   /** そのプログラムのタイトル(表示用。討議など種別名だけでは中身が分からないプログラム向け) */

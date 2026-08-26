@@ -1507,6 +1507,241 @@ input {
 /* ---- 画面が狭いとき(スマートフォン) ----
    スマートフォンでは主に割り当ての確認を行うため、読みやすさを優先する。
    帳票(印刷用ページ)はA4固定なので、ここでは対象にしない。 */
+/* ---- 担当履歴 ---- */
+
+.history-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 24px;
+}
+
+.history-picker label {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.history-picker select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-h);
+  min-width: 240px;
+}
+
+.history-section {
+  margin-bottom: 32px;
+}
+
+.history-section h2 {
+  font-size: 18px;
+  margin-bottom: 4px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--accent-bg);
+}
+
+.history-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+
+.history-note {
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.7;
+  margin: 6px 0 12px;
+}
+
+.history-empty {
+  color: var(--text);
+  opacity: 0.6;
+  font-size: 14px;
+}
+
+/* 概要のカード。項目数が変わっても崩れないよう自動で折り返す */
+.history-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.history-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.history-card-label {
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.history-card-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.history-card-sub {
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.8;
+  margin-top: 4px;
+}
+
+/* 先の予定は件数が多くなりがちなので、1枚で全幅を使い横に並べる */
+.history-card-wide {
+  grid-column: 1 / -1;
+}
+
+.history-card-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-card-list li {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--accent-bg);
+  font-size: 13px;
+  color: var(--text-h);
+  white-space: nowrap;
+}
+
+.history-card-list .history-card-list-date {
+  color: var(--accent);
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.history-never {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--accent-bg);
+  font-size: 13px;
+  color: var(--text-h);
+}
+
+/* 種別ごと・ペアの履歴は2つ並べる。狭ければ自動で縦に積む。
+   最低幅は、種別名や日付が折り返さずに収まる幅にしてある */
+.history-two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+  gap: 20px;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.history-table th,
+.history-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  vertical-align: top;
+}
+
+.history-table th {
+  background: var(--accent-bg);
+  color: var(--text-h);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.history-table tr:last-child td {
+  border-bottom: none;
+}
+
+.history-table .history-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* 時系列の列幅。日付と名前は折り返させない */
+.history-col-date {
+  width: 15%;
+}
+
+.history-col-section {
+  width: 15%;
+}
+
+.history-col-role {
+  width: 7%;
+}
+
+.history-col-name {
+  width: 16%;
+}
+
+.history-col-point {
+  width: 20%;
+}
+
+.history-datecell {
+  display: block;
+}
+
+.history-date {
+  display: block;
+  color: var(--text-h);
+  white-space: nowrap;
+}
+
+.history-relative {
+  display: block;
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.65;
+  white-space: nowrap;
+}
+
+/* 未来の担当は、済んだものと見分けられるようにする */
+.history-future td {
+  background: var(--accent-bg);
+}
+
+.history-future-date,
+.history-future-date .history-date {
+  color: var(--accent);
+}
+
+.history-section-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.history-role-main {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.history-role-partner {
+  color: var(--accent);
+}
+
 @media (max-width: 700px) {
   .page {
     padding: 16px 12px 48px;
@@ -1708,5 +1943,84 @@ input {
 
   .reports-memo-textarea {
     min-height: 200px;
+  }
+
+  /* 担当履歴も1件1枚のカードに組み替える */
+  .history-picker select {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .history-two-col {
+    grid-template-columns: 1fr;
+  }
+
+  /* 狭い画面では折り返させないと、予定のチップが画面からはみ出す */
+  .history-card-list li {
+    white-space: normal;
+  }
+
+  .history-table,
+  .history-table thead,
+  .history-table tbody,
+  .history-table tr,
+  .history-table td {
+    display: block;
+    width: auto;
+  }
+
+  .history-table {
+    border: none;
+    border-radius: 0;
+    background: none;
+  }
+
+  .history-table thead,
+  .history-table colgroup {
+    display: none;
+  }
+
+  .history-table tr {
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .history-table td {
+    display: grid;
+    grid-template-columns: 5.5em 1fr;
+    align-items: start;
+    gap: 8px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .history-table tr td:last-child {
+    border-bottom: none;
+  }
+
+  .history-table td:empty {
+    display: none;
+  }
+
+  .history-table td::before {
+    content: attr(data-label);
+    color: var(--text);
+    font-size: 12px;
+  }
+
+  .history-table .history-num {
+    text-align: left;
+  }
+
+  .history-date,
+  .history-relative {
+    display: inline;
+  }
+
+  .history-relative {
+    margin-left: 6px;
   }
 }

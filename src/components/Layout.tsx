@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 const NAV_ITEMS = [
   { to: '/', label: '週間プログラム', end: true },
   { to: '/members', label: '名簿' },
+  { to: '/history', label: '担当履歴' },
   { to: '/program-types', label: 'プログラム種別' },
   { to: '/songs', label: '歌' },
   { to: '/teaching-points', label: '教励課題' },
