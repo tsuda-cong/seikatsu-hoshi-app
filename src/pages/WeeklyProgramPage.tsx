@@ -805,7 +805,8 @@ export function WeeklyProgramPage() {
             <tr>
               {/* 割り当て画面では区分は列にせず、連続する先頭のプログラムの前に見出し行として出す */}
               {manageMode && <th>区分</th>}
-              <th>プログラム</th>
+              {/* プログラム名の列は内容から自明なので見出しを置かない(狭い画面で幅を稼ぐため) */}
+              <th />
               <th>時間</th>
               {manageMode ? (
                 <th>操作</th>
@@ -1005,7 +1006,8 @@ export function WeeklyProgramPage() {
                   </tr>
                 )}
                 <tr>
-                  <td data-label="プログラム">
+                  {/* data-label を付けないことで、狭い画面ではカードの見出しとして全幅に広がる */}
+                  <td className="program-cell">
                     {/* 種別はプログラム編集モードでのみ表示する(割り当て画面では冗長なため) */}
                     <div className="program-title">{program.title ?? programType?.name}</div>
                     {renderProgramDetails(program)}

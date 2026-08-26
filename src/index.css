@@ -1564,7 +1564,7 @@ input {
   }
 
   /* カードの先頭(プログラム名)に色を敷き、1枚ずつの区切りを分かりやすくする */
-  .program-table td[data-label='プログラム'] {
+  .program-table td.program-cell {
     background: var(--accent-bg);
   }
 
