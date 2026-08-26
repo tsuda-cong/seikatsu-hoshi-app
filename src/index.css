@@ -1555,17 +1555,25 @@ input {
     display: none;
   }
 
+  /* overflow:hidden は使わない。担当者の候補リストはセルの外に開くため、
+     切り落としてしまう(角の処理は下の .program-cell 側で行う) */
   .program-table tr {
     margin-bottom: 14px;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--surface);
-    overflow: hidden;
   }
 
   /* カードの先頭(プログラム名)に色を敷き、1枚ずつの区切りを分かりやすくする */
   .program-table td.program-cell {
     background: var(--accent-bg);
+    border-radius: 9px 9px 0 0;
+  }
+
+  /* 候補リストは項目名の欄の分だけ右に寄っていて狭い。前回情報が折り返さないよう、
+     セルの左端まで広げる(5.5em は項目名の欄、8px はその右の余白) */
+  .program-table .candidate-list {
+    left: calc(-5.5em - 8px);
   }
 
   /* 区分はカード枠を付けず、続くカード群の見出しの帯として置く */
