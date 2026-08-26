@@ -39,7 +39,7 @@ export function AssignmentsRangePrintPage() {
           </colgroup>
           <thead>
             <tr>
-              <th>担当</th>
+              <th>割当</th>
               <th>時間</th>
               <th>課題</th>
               <th>生徒</th>

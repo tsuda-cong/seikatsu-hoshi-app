@@ -888,8 +888,8 @@ input {
   }
   @page {
     size: A4;
-    /* 左右は狭めて、表の列に幅を回す(上下は綴じ代・ヘッダー用に残す) */
-    margin: 10mm 6mm;
+    /* 帳票の中身に紙面を回すため、余白は控えめにしている */
+    margin: 7mm 6mm;
   }
 }
 
@@ -1165,7 +1165,7 @@ input {
      これ以上増やすと5週が1枚に入らなくなるので、増やすときは実際に5週ある月
      (2026年なら1/4/7/10/12月)で確認すること。タイトルが長く折り返す行があると
      その分伸びるので、折り返しが多い月で確認するのが安全 */
-  padding: 1.5px 8px;
+  padding: 2px 8px;
   border-left: 8px solid transparent;
   font-size: 9pt;
   line-height: 1.15;
@@ -1258,7 +1258,9 @@ input {
 }
 
 .assignments-sheet h1 {
-  font-size: 14px;
+  /* 集会予定表のタイトルと同じ大きさ。色は週の日付バー(.assignments-week-header)に合わせる */
+  font-size: 16pt;
+  color: #6c3093;
 }
 
 .assignments-table {
@@ -1268,8 +1270,9 @@ input {
 .assignments-table th,
 .assignments-table td {
   border: none;
-  /* 文字を9ptに上げた分、縞の高さが変わらないよう余白と行間を詰めている */
-  padding: 0.5px 8px;
+  /* 行の上下の余白。A4一枚に11週分が収まる範囲でゆとりを持たせている。
+     増やすときは実際に11週分の期間を指定して確認すること */
+  padding: 1.5px 8px;
   font-size: 9pt;
   line-height: 1.15;
   color: #000;
