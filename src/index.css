@@ -1124,7 +1124,9 @@ input {
 }
 
 .schedule-title-row h1 {
-  font-size: 14pt;
+  font-size: 16pt;
+  /* 週の日付バー(.schedule-week-header)と同じ色で揃える */
+  color: #2a4d7a;
   margin: 0;
 }
 
@@ -1159,8 +1161,11 @@ input {
   grid-template-columns: 1fr 34px 34px 48px 116px 100px 108px;
   align-items: start;
   column-gap: 6px;
-  /* 文字を9ptに上げた分、行の高さが変わらないよう余白と行間を詰めている */
-  padding: 0.5px 8px;
+  /* 行の上下の余白。A4一枚に5週分(47行)が収まる範囲でゆとりを持たせている。
+     これ以上増やすと5週が1枚に入らなくなるので、増やすときは実際に5週ある月
+     (2026年なら1/4/7/10/12月)で確認すること。タイトルが長く折り返す行があると
+     その分伸びるので、折り返しが多い月で確認するのが安全 */
+  padding: 1.5px 8px;
   border-left: 8px solid transparent;
   font-size: 9pt;
   line-height: 1.15;

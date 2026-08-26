@@ -14,10 +14,10 @@ import {
 } from '../../lib/printData'
 
 function formatTitle(monthStr: string | undefined): string {
-  if (!monthStr) return 'クリスチャンとしての生活と奉仕'
+  if (!monthStr) return 'クリスチャンとしての生活と奉仕の集会'
   const [, m] = monthStr.split('-').map(Number)
-  if (!m) return 'クリスチャンとしての生活と奉仕'
-  return `クリスチャンとしての生活と奉仕―${m}月`
+  if (!m) return 'クリスチャンとしての生活と奉仕の集会'
+  return `クリスチャンとしての生活と奉仕の集会―${m}月`
 }
 
 /** 「1．」のような先頭の番号が付いているか */
