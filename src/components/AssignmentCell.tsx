@@ -17,8 +17,6 @@ interface AssignmentCellProps {
   nearTwoWeeks?: boolean
   proximityLabel?: string
   proximityTooltip?: string
-  /** 名前で絞り込む入力欄を出すか(既定では出さない。CandidateCombobox参照) */
-  searchable?: boolean
 }
 
 export function AssignmentCell({
@@ -33,26 +31,8 @@ export function AssignmentCell({
   nearTwoWeeks,
   proximityLabel,
   proximityTooltip,
-  searchable = false,
 }: AssignmentCellProps) {
   const [open, setOpen] = useState(false)
-
-  const combobox = open ? (
-    <CandidateCombobox
-      candidates={candidates}
-      referenceDate={referenceDate}
-      searchable={searchable}
-      onClose={() => setOpen(false)}
-      onSelect={(memberId) => {
-        onAssign(memberId)
-        setOpen(false)
-      }}
-    />
-  ) : null
-
-  // 検索欄があるときは入力に集中できるよう入れ替える。無いときは現在の割り当てを
-  // 見たまま選べるよう、ボタンを残してその下にリストを開く
-  if (open && searchable) return combobox
 
   // 優先度: 同日重複 > 前後1週 > 前後2週
   const proximityClass = !currentMember
@@ -84,7 +64,18 @@ export function AssignmentCell({
             ? `${memberDisplayName(currentMember)}${showLabel ? ` ${proximityLabel}` : ''}`
             : placeholder}
       </button>
-      {combobox}
+      {/* 現在の割り当てを見たまま選べるよう、ボタンは残してその下にリストを開く */}
+      {open && (
+        <CandidateCombobox
+          candidates={candidates}
+          referenceDate={referenceDate}
+          onClose={() => setOpen(false)}
+          onSelect={(memberId) => {
+            onAssign(memberId)
+            setOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }

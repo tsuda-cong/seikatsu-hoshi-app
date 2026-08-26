@@ -320,8 +320,7 @@ input {
   white-space: nowrap;
 }
 
-.chairman-field .assignment-value,
-.chairman-field .candidate-combobox {
+.chairman-field .assignment-value {
   min-width: 160px;
 }
 
@@ -430,10 +429,12 @@ input {
   table-layout: fixed;
 }
 
-/* 幅は比率で持つ。px固定にすると、ウィンドウが狭いときに表がはみ出す。
-   最大幅(1100px)のとき、実測でいちばん長い説明文(約397px)が収まる比率 */
+/* 幅は比率で持つ。px固定にすると、ウィンドウが狭いときに表がはみ出す
+   (iPadを縦にしたときがこれに当たる)。
+   実測値との対応: いちばん長い説明文が約397px、いちばん長い名前が約140px。
+   iPad縦(表の幅773px)でも名前が折り返さず、説明文にできるだけ回す配分 */
 .program-table .col-program {
-  width: 40%;
+  width: 43%;
 }
 
 .program-table .col-duration {
@@ -448,7 +449,7 @@ input {
 
 /* 残り(ペアの列)も同じ比率になるので、担当者とペアの幅は揃う */
 .program-table .col-assignee {
-  width: 26.5%;
+  width: 25%;
 }
 
 
@@ -573,51 +574,30 @@ input {
   position: relative;
 }
 
+/* ボタンの下にリストだけを開く。高さを持たない箱にして、
+   開いても行の高さが変わらないようにする */
 .candidate-combobox {
-  position: relative;
-  min-width: 220px;
-}
-
-/* 検索欄が無いときは、ボタンを残したままその下にリストだけを開く。
-   高さを持たない箱にして、行の高さが変わらないようにする */
-.candidate-combobox-listonly {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
-  min-width: 0;
-}
-
-.candidate-combobox-listonly .candidate-list {
-  margin-top: 2px;
-  border-top: 1px solid var(--accent);
-  border-radius: 6px;
-}
-
-.candidate-combobox input {
-  width: 100%;
-  padding: 6px 10px;
-  border: 1px solid var(--accent);
-  border-radius: 6px 6px 0 0;
-  background: var(--surface);
-  color: var(--text-h);
 }
 
 .candidate-list {
   position: absolute;
   z-index: 10;
-  top: 100%;
+  /* 親(.candidate-combobox)は高さを持たないので、これでボタンのすぐ下に出る */
+  top: 0;
   left: 0;
   right: 0;
   max-height: 260px;
   overflow-y: auto;
-  margin: 0;
+  margin: 2px 0 0;
   padding: 4px;
   list-style: none;
   background: var(--surface);
   border: 1px solid var(--accent);
-  border-top: none;
-  border-radius: 0 0 6px 6px;
+  border-radius: 6px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
   /* 「前回: 2026/6/11(11週間前)・4．会話を始める」が折り返さない幅。
      絶対配置なので、列幅より広げても表のレイアウトには影響しない */
