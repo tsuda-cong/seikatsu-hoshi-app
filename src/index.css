@@ -430,13 +430,14 @@ input {
   table-layout: fixed;
 }
 
-/* 実測でいちばん長い説明文(約397px)が収まる幅 */
+/* 幅は比率で持つ。px固定にすると、ウィンドウが狭いときに表がはみ出す。
+   最大幅(1100px)のとき、実測でいちばん長い説明文(約397px)が収まる比率 */
 .program-table .col-program {
-  width: 430px;
+  width: 40%;
 }
 
 .program-table .col-duration {
-  width: 70px;
+  width: 7%;
 }
 
 /* 数値なので右寄せ。見出しも揃える */
@@ -445,15 +446,11 @@ input {
   text-align: right;
 }
 
+/* 残り(ペアの列)も同じ比率になるので、担当者とペアの幅は揃う */
 .program-table .col-assignee {
-  width: 252px;
+  width: 26.5%;
 }
 
-/* 余りを受け取る列に入っても、担当者・ペアの入力欄は同じ幅で揃える */
-.program-table .assignment-value,
-.program-table .candidate-combobox {
-  max-width: 228px;
-}
 
 .program-table .col-section {
   width: 150px;
@@ -571,9 +568,30 @@ input {
   opacity: 0.6;
 }
 
+/* ボタンとリストをまとめる枠。リストはこの枠を基準に開く */
+.assignment-cell {
+  position: relative;
+}
+
 .candidate-combobox {
   position: relative;
   min-width: 220px;
+}
+
+/* 検索欄が無いときは、ボタンを残したままその下にリストだけを開く。
+   高さを持たない箱にして、行の高さが変わらないようにする */
+.candidate-combobox-listonly {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  min-width: 0;
+}
+
+.candidate-combobox-listonly .candidate-list {
+  margin-top: 2px;
+  border-top: 1px solid var(--accent);
+  border-radius: 6px;
 }
 
 .candidate-combobox input {
@@ -1598,6 +1616,13 @@ input {
     width: auto;
   }
 
+  /* 1件ずつがカードになるので、表全体を囲む枠は二重になる。消す */
+  .program-table {
+    border: none;
+    border-radius: 0;
+    background: none;
+  }
+
   .program-table thead,
   .program-table colgroup {
     display: none;
@@ -1651,15 +1676,17 @@ input {
     border-bottom: none;
   }
 
+  /* iOSは16px未満の入力欄にフォーカスすると画面を勝手に拡大してしまうので、
+     狭い画面ではどの入力欄も拡大されない大きさにする */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
   /* カードでは項目名の右に値を並べるので、右寄せは解除する */
   .program-table td.duration-cell {
     text-align: left;
-  }
-
-  /* PCで列幅を揃えるための上限は、カードでは不要(幅いっぱいに使う) */
-  .program-table .assignment-value,
-  .program-table .candidate-combobox {
-    max-width: none;
   }
 
   /* 中身が空・該当なしの項目は行ごと隠して、カードを短くする */

@@ -754,6 +754,7 @@ export function WeeklyProgramPage() {
               referenceDate={referenceDate}
               saving={savingChairman}
               placeholder="未選択"
+              searchable
               onAssign={handleAssignChairman}
             />
           </div>

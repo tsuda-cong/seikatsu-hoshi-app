@@ -17,6 +17,8 @@ interface AssignmentCellProps {
   nearTwoWeeks?: boolean
   proximityLabel?: string
   proximityTooltip?: string
+  /** 名前で絞り込む入力欄を出すか(既定では出さない。CandidateCombobox参照) */
+  searchable?: boolean
 }
 
 export function AssignmentCell({
@@ -31,22 +33,26 @@ export function AssignmentCell({
   nearTwoWeeks,
   proximityLabel,
   proximityTooltip,
+  searchable = false,
 }: AssignmentCellProps) {
   const [open, setOpen] = useState(false)
 
-  if (open) {
-    return (
-      <CandidateCombobox
-        candidates={candidates}
-        referenceDate={referenceDate}
-        onClose={() => setOpen(false)}
-        onSelect={(memberId) => {
-          onAssign(memberId)
-          setOpen(false)
-        }}
-      />
-    )
-  }
+  const combobox = open ? (
+    <CandidateCombobox
+      candidates={candidates}
+      referenceDate={referenceDate}
+      searchable={searchable}
+      onClose={() => setOpen(false)}
+      onSelect={(memberId) => {
+        onAssign(memberId)
+        setOpen(false)
+      }}
+    />
+  ) : null
+
+  // 検索欄があるときは入力に集中できるよう入れ替える。無いときは現在の割り当てを
+  // 見たまま選べるよう、ボタンを残してその下にリストを開く
+  if (open && searchable) return combobox
 
   // 優先度: 同日重複 > 前後1週 > 前後2週
   const proximityClass = !currentMember
@@ -64,18 +70,21 @@ export function AssignmentCell({
   const showLabel = showProximity && !!proximityLabel
 
   return (
-    <button
-      type="button"
-      className={`assignment-value ${currentMember ? '' : 'assignment-empty'} ${proximityClass}`}
-      onClick={() => setOpen(true)}
-      disabled={saving}
-      title={showProximity ? proximityTooltip : undefined}
-    >
-      {saving
-        ? '保存中...'
-        : currentMember
-          ? `${memberDisplayName(currentMember)}${showLabel ? ` ${proximityLabel}` : ''}`
-          : placeholder}
-    </button>
+    <div className="assignment-cell">
+      <button
+        type="button"
+        className={`assignment-value ${currentMember ? '' : 'assignment-empty'} ${proximityClass}`}
+        onClick={() => setOpen((v) => !v)}
+        disabled={saving}
+        title={showProximity ? proximityTooltip : undefined}
+      >
+        {saving
+          ? '保存中...'
+          : currentMember
+            ? `${memberDisplayName(currentMember)}${showLabel ? ` ${proximityLabel}` : ''}`
+            : placeholder}
+      </button>
+      {combobox}
+    </div>
   )
 }

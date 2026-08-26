@@ -8,6 +8,11 @@ interface CandidateComboboxProps {
   onSelect: (memberId: string | null) => void
   onClose: () => void
   allowClear?: boolean
+  /**
+   * 名前で絞り込む入力欄を出すか。候補は担当日順に並んでいて目視で選ぶため、
+   * 既定では出さない(スマホでキーボードが開いてしまうのを避ける意味もある)
+   */
+  searchable?: boolean
 }
 
 /** 開会の祈りと閉会の祈りは一目で見分けられるよう色を変える */
@@ -23,6 +28,7 @@ export function CandidateCombobox({
   onSelect,
   onClose,
   allowClear = true,
+  searchable = false,
 }: CandidateComboboxProps) {
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -34,7 +40,10 @@ export function CandidateCombobox({
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      // 検索欄が無いときはボタンが残ったままリストだけを開くので、
+      // ボタンを含む枠の外側を押したときに閉じる(でないとボタンで閉じられない)
+      const root = containerRef.current?.closest('.assignment-cell') ?? containerRef.current
+      if (root && !root.contains(e.target as Node)) {
         onClose()
       }
     }
@@ -43,26 +52,28 @@ export function CandidateCombobox({
   }, [onClose])
 
   const filtered = useMemo(() => {
-    const q = query.trim()
+    const q = searchable ? query.trim() : ''
     if (!q) return candidates
     return candidates.filter(({ member }) => {
       const haystack = `${member.last_name}${member.first_name}${member.last_name_kana ?? ''}${member.first_name_kana ?? ''}${member.honorific}`
       return haystack.includes(q)
     })
-  }, [candidates, query])
+  }, [candidates, query, searchable])
 
   return (
-    <div className="candidate-combobox" ref={containerRef}>
-      <input
-        ref={inputRef}
-        type="text"
-        placeholder="名前で検索..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') onClose()
-        }}
-      />
+    <div className={`candidate-combobox ${searchable ? '' : 'candidate-combobox-listonly'}`} ref={containerRef}>
+      {searchable && (
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder="名前で検索..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') onClose()
+          }}
+        />
+      )}
       <ul className="candidate-list">
         {allowClear && (
           <li>
