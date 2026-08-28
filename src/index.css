@@ -1781,56 +1781,6 @@ input {
   color: var(--accent);
 }
 
-/* ---- 過去データの取り込み(一時的な画面) ---- */
-
-.import-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 12px 0 24px;
-}
-
-.import-actions button {
-  padding: 8px 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text-h);
-}
-
-.import-actions .manage-toggle {
-  margin-left: 0;
-  border: none;
-}
-
-.import-actions button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.import-progress {
-  font-size: 14px;
-  color: var(--text);
-}
-
-.import-list {
-  margin: 0;
-  padding-left: 1.2em;
-  font-size: 13px;
-  color: var(--text);
-}
-
-.import-list li {
-  margin-bottom: 2px;
-}
-
-/* 割り当て先が決まらなかった行は目立たせる */
-.import-unresolved td {
-  background: rgba(192, 54, 44, 0.12);
-  color: var(--danger);
-  font-weight: 600;
-}
-
 @media (max-width: 700px) {
   .page {
     padding: 16px 12px 48px;

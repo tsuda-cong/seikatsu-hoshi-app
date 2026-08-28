@@ -7,7 +7,6 @@ import { LoginPage } from './pages/LoginPage'
 import { WeeklyProgramPage } from './pages/WeeklyProgramPage'
 import { MembersPage } from './pages/MembersPage'
 import { MemberHistoryPage } from './pages/MemberHistoryPage'
-import { ImportHistoryPage } from './pages/ImportHistoryPage'
 import { ProgramTypesPage } from './pages/ProgramTypesPage'
 import { SongsPage } from './pages/SongsPage'
 import { TeachingPointsPage } from './pages/TeachingPointsPage'
@@ -44,8 +43,6 @@ function AdminArea() {
                   <Route path="/" element={<WeeklyProgramPage />} />
                   <Route path="/members" element={<MembersPage />} />
                   <Route path="/history" element={<MemberHistoryPage />} />
-                  {/* 過去データの取り込み用。一度きりの作業なのでナビには出さない */}
-                  <Route path="/import-history" element={<ImportHistoryPage />} />
                   <Route path="/program-types" element={<ProgramTypesPage />} />
                   <Route path="/songs" element={<SongsPage />} />
                   <Route path="/teaching-points" element={<TeachingPointsPage />} />
