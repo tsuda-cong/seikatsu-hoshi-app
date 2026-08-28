@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
 import { memberDisplayName } from '../lib/candidates'
 import { todayString } from '../lib/localDate'
@@ -94,6 +94,35 @@ export function MemberHistoryPage() {
 
   const pairsAsMember = useMemo(() => buildPairSummaries(entries, 'member'), [entries])
   const pairsAsPartner = useMemo(() => buildPairSummaries(entries, 'partner'), [entries])
+
+  // 4年分あると時系列が200件を超える人が出るので、年で畳んで見せる
+  const entriesByYear = useMemo(() => {
+    const map = new Map<string, HistoryEntry[]>()
+    // entriesは新しい順なので、年も自動的に新しい順に並ぶ
+    for (const e of entries) {
+      const year = e.date.slice(0, 4)
+      const list = map.get(year)
+      if (list) list.push(e)
+      else map.set(year, [e])
+    }
+    return [...map.entries()]
+  }, [entries])
+
+  const [openYears, setOpenYears] = useState<Set<string>>(new Set())
+
+  // 人を切り替えたら、いちばん新しい年だけを開いた状態に戻す
+  useEffect(() => {
+    setOpenYears(new Set(entriesByYear.length > 0 ? [entriesByYear[0][0]] : []))
+  }, [entriesByYear])
+
+  function toggleYear(year: string) {
+    setOpenYears((prev) => {
+      const next = new Set(prev)
+      if (next.has(year)) next.delete(year)
+      else next.add(year)
+      return next
+    })
+  }
 
   const pastEntries = entries.filter((e) => e.date <= today)
   const futureEntries = entries.filter((e) => e.date > today).reverse()
@@ -207,7 +236,23 @@ export function MemberHistoryPage() {
                 </tr>
               </thead>
               <tbody>
-                {entries.map((e, i) => {
+                {entriesByYear.map(([year, yearEntries]) => (
+                  <Fragment key={year}>
+                    <tr className="history-year-row">
+                      <td colSpan={6}>
+                        <button
+                          type="button"
+                          onClick={() => toggleYear(year)}
+                          aria-expanded={openYears.has(year)}
+                        >
+                          <span className="history-year-caret">{openYears.has(year) ? '▾' : '▸'}</span>
+                          {year}年
+                          <span className="history-year-count">{yearEntries.length}件</span>
+                        </button>
+                      </td>
+                    </tr>
+                    {openYears.has(year) &&
+                      yearEntries.map((e, i) => {
                   const teachingPoint = e.teachingPointId ? teachingPointsById.get(e.teachingPointId) : undefined
                   const isFuture = e.date > today
                   return (
@@ -239,7 +284,9 @@ export function MemberHistoryPage() {
                       </td>
                     </tr>
                   )
-                })}
+                      })}
+                  </Fragment>
+                ))}
               </tbody>
             </table>
           </section>

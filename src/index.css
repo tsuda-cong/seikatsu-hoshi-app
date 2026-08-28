@@ -81,7 +81,12 @@ input {
 
 /* ---- app shell / nav ---- */
 
+/* スクロールしても常に上に残す。z-indexは候補リスト(10)より大きくして、
+   リストがヘッダーの上に重ならないようにする */
 .app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1753,6 +1758,43 @@ input {
   white-space: nowrap;
 }
 
+/* 年の見出し行。週ごとのプログラムの区分の帯と同じ考え方で、
+   一覧の途中に差し込んで開閉させる */
+.history-year-row td {
+  padding: 0;
+  background: var(--accent-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.history-year-row button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: none;
+  color: var(--text-h);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.history-year-row button:hover {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.history-year-caret {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.history-year-count {
+  font-weight: 400;
+  opacity: 0.7;
+}
+
 /* 未来の担当は、済んだものと見分けられるようにする */
 .history-future td {
   background: var(--accent-bg);
@@ -1790,6 +1832,9 @@ input {
   .app-header {
     padding: 10px 12px;
     gap: 8px;
+    /* ハンバーガーを開くとナビが縦に並ぶので、画面を覆い尽くさないようにする */
+    max-height: 100svh;
+    overflow-y: auto;
   }
 
   .app-nav-toggle {
@@ -2025,6 +2070,29 @@ input {
     border-radius: 10px;
     background: var(--surface);
     overflow: hidden;
+  }
+
+  /* 年の見出しはカードにせず、続くカード群の見出しの帯として置く */
+  .history-table tr.history-year-row {
+    margin: 18px 0 8px;
+    border: none;
+    background: none;
+    border-radius: 8px;
+  }
+
+  .history-table .history-year-row td {
+    display: block;
+    border-bottom: none;
+    border-radius: 8px;
+  }
+
+  .history-table .history-year-row td::before {
+    content: none;
+  }
+
+  .history-year-row button {
+    padding: 8px 12px;
+    font-size: 14px;
   }
 
   .history-table td {
