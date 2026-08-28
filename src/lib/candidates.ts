@@ -80,6 +80,17 @@ export type LastTeachingAssignmentMapsByPool = Map<string, LastTeachingAssignmen
 export const PRAYER_TYPE_NAME = '祈り'
 
 /**
+ * 開会の言葉と閉会の言葉は、同じ人が司会者として両方を担当する
+ * (週ごとのプログラムの司会者欄で選ぶと、両方の割り当てが同時に入る)。
+ * そのため個別のプログラムとしては候補を出さず、担当履歴でも一つの
+ * 「司会者」としてまとめて数える。
+ */
+export const CHAIRMAN_TYPE_NAMES = ['開会の言葉', '閉会の言葉']
+
+/** 司会者としてまとめたときの表示名。候補プールのキーも兼ねる */
+export const CHAIRMAN_LABEL = '司会者'
+
+/**
  * 祈りは同じ種別のまま開会と閉会の両方で使うため、区分から呼び分けの名前を作る。
  * 「閉会」区分は現在使っていないが、過去データにはあるので閉会扱いのままにする。
  */

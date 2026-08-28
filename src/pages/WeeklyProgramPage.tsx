@@ -8,6 +8,8 @@ import {
   buildPairingMap,
   buildPrayerRecencyMap,
   getEligibleCandidates,
+  memberDisplayName,
+  CHAIRMAN_TYPE_NAMES,
   PRAYER_TYPE_NAME,
 } from '../lib/candidates'
 import { todayString } from '../lib/localDate'
@@ -1012,6 +1014,9 @@ export function WeeklyProgramPage() {
               const previousSection = index > 0 ? (sortedPrograms[index - 1].section ?? '') : ''
               const showSectionHeading = !!section && section !== previousSection && section !== OPENING_SECTION
 
+              // 開会の言葉・閉会の言葉は司会者と同義。候補は司会者欄で選ぶので、ここでは出さない
+              const isChairmanProgram = !!programType && CHAIRMAN_TYPE_NAMES.includes(programType.name)
+
               return (
                 // data-label は、画面が狭いときに表を1件ずつのカードに組み替えて
                 // 表示するための見出し(src/index.css の .program-table を参照)
@@ -1042,7 +1047,13 @@ export function WeeklyProgramPage() {
                     {program.duration_minutes ? `${program.duration_minutes}分` : ''}
                   </td>
                   <td data-label="担当者">
-                    {programType ? (
+                    {isChairmanProgram ? (
+                      // 司会者欄で選ぶと両方に入るので、ここでは候補を出さず結果だけ見せる
+                      <span className="assignment-readonly">
+                        {assignment?.member ? memberDisplayName(assignment.member) : '未割当'}
+                        <span className="assignment-readonly-note">司会者</span>
+                      </span>
+                    ) : programType ? (
                       <AssignmentCell
                         currentMember={assignment?.member}
                         candidates={memberCandidates}

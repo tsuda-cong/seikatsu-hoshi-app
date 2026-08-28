@@ -515,6 +515,23 @@ input {
   margin-top: 2px;
 }
 
+/* 司会者欄で決まるプログラム(開会の言葉・閉会の言葉)。結果だけを出す */
+.assignment-readonly {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  color: var(--text-h);
+  font-weight: 500;
+}
+
+.assignment-readonly-note {
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.65;
+  white-space: nowrap;
+}
+
 .assignment-disabled {
   color: var(--text);
   opacity: 0.5;

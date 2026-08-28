@@ -1,4 +1,4 @@
-import type { AssignmentHistoryRow } from './candidates'
+import { CHAIRMAN_LABEL, CHAIRMAN_TYPE_NAMES, type AssignmentHistoryRow } from './candidates'
 import type { Member, ProgramType } from '../types/domain'
 
 /** その回に本人がどちらで入っていたか */
@@ -26,6 +26,8 @@ function daysBetween(a: string, b: string): number {
 /** 本人が関わった全ての回を、新しい順に並べて返す */
 export function buildMemberTimeline(rows: AssignmentHistoryRow[], memberId: string): HistoryEntry[] {
   const entries: HistoryEntry[] = []
+  // 同じ週の開会の言葉と閉会の言葉は、司会者として1件にまとめる
+  const seenChairmanDates = new Set<string>()
 
   for (const row of rows) {
     if (!row.program_date) continue
@@ -36,6 +38,24 @@ export function buildMemberTimeline(rows: AssignmentHistoryRow[], memberId: stri
     // ペアで入った回は、ペア側のルール参照元(例: 会衆の聖書研究の朗読者)を本人の種別とみなす。
     // 候補選択側(buildLastAssignedMap)と同じ扱いにして、集計がずれないようにする
     const typeId = isMember ? row.program_type_id : (row.partner_program_type_id ?? row.program_type_id)
+
+    if (isMember && row.program_type_name && CHAIRMAN_TYPE_NAMES.includes(row.program_type_name)) {
+      if (seenChairmanDates.has(row.program_date)) continue
+      seenChairmanDates.add(row.program_date)
+      entries.push({
+        date: row.program_date,
+        // 会の最初と最後にまたがる役目なので、特定の区分には属さない
+        section: null,
+        programLabel: CHAIRMAN_LABEL,
+        typeId,
+        typeName: CHAIRMAN_LABEL,
+        role: 'member',
+        counterpartId: null,
+        teachingPointId: null,
+        hasTeachingPoint: false,
+      })
+      continue
+    }
 
     entries.push({
       date: row.program_date,
@@ -67,10 +87,15 @@ export interface TypeSummary {
   averageCycleDays: number | null
 }
 
-/** 種別id -> 候補プールのキー。recency_pool未設定の種別は他と混ざらないよう種別id自身をキーにする */
+/**
+ * 種別id -> 候補プールのキー。recency_pool未設定の種別は他と混ざらないよう種別id自身をキーにする。
+ * 開会の言葉と閉会の言葉だけは、同じ人が司会者として両方を担当するので一つのプールにまとめる。
+ */
 export function buildPoolKeyByTypeId(programTypes: ProgramType[]): Map<string, string> {
   const map = new Map<string, string>()
-  for (const pt of programTypes) map.set(pt.id, pt.recency_pool || pt.id)
+  for (const pt of programTypes) {
+    map.set(pt.id, CHAIRMAN_TYPE_NAMES.includes(pt.name) ? CHAIRMAN_LABEL : pt.recency_pool || pt.id)
+  }
   return map
 }
 
@@ -78,6 +103,10 @@ export function buildPoolKeyByTypeId(programTypes: ProgramType[]): Map<string, s
 function buildPoolLabels(programTypes: ProgramType[]): Map<string, string> {
   const map = new Map<string, string>()
   for (const pt of programTypes) {
+    if (CHAIRMAN_TYPE_NAMES.includes(pt.name)) {
+      map.set(CHAIRMAN_LABEL, CHAIRMAN_LABEL)
+      continue
+    }
     map.set(pt.recency_pool || pt.id, pt.recency_pool || pt.name)
   }
   return map
@@ -167,7 +196,9 @@ export function buildPoolAverageCycles(
   const result = new Map<string, number | null>()
   for (const [key, byMember] of datesByPoolByMember) {
     const cycles: number[] = []
-    for (const dates of byMember.values()) {
+    for (const raw of byMember.values()) {
+      // 司会者は開会の言葉と閉会の言葉で同じ週に2件入るので、週として1回に数える
+      const dates = key === CHAIRMAN_LABEL ? [...new Set(raw)] : raw
       if (dates.length < 2) continue
       dates.sort()
       cycles.push(daysBetween(dates[dates.length - 1], dates[0]) / (dates.length - 1))
@@ -213,7 +244,9 @@ export function buildNeverAssignedPools(
 
   const eligiblePools = new Set<string>()
   for (const pt of programTypes) {
-    if (isEligibleFor(member, pt)) eligiblePools.add(pt.recency_pool || pt.id)
+    // 担当実績側と同じキーで揃える(司会者のまとめも含む)。ここを別々に組み立てると、
+    // 司会者をやっている人に「開会の言葉が未担当」と出てしまう
+    if (isEligibleFor(member, pt)) eligiblePools.add(poolKeyByTypeId.get(pt.id) ?? pt.id)
   }
 
   const labels: string[] = []
