@@ -236,22 +236,34 @@ export function buildNeverAssignedPools(
   const poolKeyByTypeId = buildPoolKeyByTypeId(programTypes)
   const poolLabels = buildPoolLabels(programTypes)
 
-  const assignedPools = new Set<string>()
-  for (const e of entries) {
-    if (e.role !== 'member' || !e.typeId) continue
-    assignedPools.add(poolKeyByTypeId.get(e.typeId) ?? e.typeId)
-  }
+  // 他の種別からペア側として参照されている種別(会衆の聖書研究の朗読者など)は、
+  // 担当者としてではなくペアの欄でしか割り当たらない。実績もペア側で見ないと、
+  // 実際に担当していても「まだ回っていない」と出てしまう
+  const partnerOnlyTypeIds = new Set(
+    programTypes.map((pt) => pt.partner_program_type_id).filter((id): id is string => !!id),
+  )
 
-  const eligiblePools = new Set<string>()
-  for (const pt of programTypes) {
-    // 担当実績側と同じキーで揃える(司会者のまとめも含む)。ここを別々に組み立てると、
-    // 司会者をやっている人に「開会の言葉が未担当」と出てしまう
-    if (isEligibleFor(member, pt)) eligiblePools.add(poolKeyByTypeId.get(pt.id) ?? pt.id)
+  const assignedAsMember = new Set<string>()
+  const assignedAsPartner = new Set<string>()
+  for (const e of entries) {
+    if (!e.typeId) continue
+    const key = poolKeyByTypeId.get(e.typeId) ?? e.typeId
+    if (e.role === 'member') assignedAsMember.add(key)
+    else assignedAsPartner.add(key)
   }
 
   const labels: string[] = []
-  for (const key of eligiblePools) {
-    if (!assignedPools.has(key)) labels.push(poolLabels.get(key) ?? '(不明な種別)')
+  const seenPools = new Set<string>()
+  for (const pt of programTypes) {
+    if (!isEligibleFor(member, pt)) continue
+    // 担当実績側と同じキーで揃える(司会者のまとめも含む)。別々に組み立てると、
+    // 司会者をやっている人に「開会の言葉が未担当」と出てしまう
+    const key = poolKeyByTypeId.get(pt.id) ?? pt.id
+    if (seenPools.has(key)) continue
+    seenPools.add(key)
+
+    const assigned = partnerOnlyTypeIds.has(pt.id) ? assignedAsPartner : assignedAsMember
+    if (!assigned.has(key)) labels.push(poolLabels.get(key) ?? '(不明な種別)')
   }
   return labels.sort((a, b) => a.localeCompare(b, 'ja'))
 }
