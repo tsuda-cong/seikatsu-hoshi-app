@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { fetchAllRows } from '../lib/fetchAll'
 import type { AssignmentHistoryRow } from '../lib/candidates'
 import type { Member, ProgramType, Song, TeachingPoint } from '../types/domain'
 
@@ -50,15 +51,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
 
   const fetchHistory = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('assignments')
-      .select(
-        'member_id, partner_id, programs(date, title, section, program_type_id, teaching_point_id, program_types(name, partner_program_type_id))',
-      )
+    // 割り当ては件数が増え続けるので、1000行の上限に当たらないよう必ずページングする
+    const data = await fetchAllRows(() =>
+      supabase
+        .from('assignments')
+        .select(
+          'member_id, partner_id, programs(date, title, section, program_type_id, teaching_point_id, program_types(name, partner_program_type_id))',
+        )
+        .order('id', { ascending: true }),
+    )
 
-    if (error) throw error
-
-    const rows: AssignmentHistoryRow[] = (data ?? []).map((row) => {
+    const rows: AssignmentHistoryRow[] = data.map((row) => {
       const program = Array.isArray(row.programs) ? row.programs[0] : row.programs
       const programType = program
         ? Array.isArray(program.program_types)

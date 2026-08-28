@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { fetchAllRows } from '../lib/fetchAll'
 import { useAppData } from '../context/AppDataContext'
 import { parseAssignmentTsv, type ParseResult } from '../lib/importHistory'
 
@@ -55,9 +56,10 @@ export function ImportHistoryPage() {
 
     try {
       // 既にプログラムがある週は丸ごと飛ばす。二重取り込みを防ぐ唯一の歯止め
-      const { data: existing, error: existingError } = await supabase.from('programs').select('date')
-      if (existingError) throw existingError
-      const existingDates = new Set((existing ?? []).map((r) => r.date))
+      const existing = await fetchAllRows<{ date: string }>(() =>
+        supabase.from('programs').select('date').order('date', { ascending: true }),
+      )
+      const existingDates = new Set(existing.map((r) => r.date))
 
       let imported = 0
       let skipped = 0

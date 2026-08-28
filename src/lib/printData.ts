@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { fetchAllRows } from './fetchAll'
 import type { Assignment, Member, Program, ProgramType } from '../types/domain'
 
 export type ProgramWithType = Program & { program_types: ProgramType | null }
@@ -14,28 +15,29 @@ export interface RangeData {
 }
 
 export async function fetchRangeData(from: string, to: string): Promise<RangeData> {
-  const { data: programData, error: programError } = await supabase
-    .from('programs')
-    .select('*, program_types(*)')
-    .gte('date', from)
-    .lte('date', to)
-    .order('date', { ascending: true })
-    .order('order_no', { ascending: true })
-    .returns<ProgramWithType[]>()
-  if (programError) throw programError
-
-  const programs = programData ?? []
+  // 期間が長いとどちらも1000行を超えうるので、ページングして取り切る
+  const programs = await fetchAllRows<ProgramWithType>(() =>
+    supabase
+      .from('programs')
+      .select('*, program_types(*)')
+      .gte('date', from)
+      .lte('date', to)
+      .order('date', { ascending: true })
+      .order('order_no', { ascending: true })
+      .returns<ProgramWithType[]>(),
+  )
   const programIds = programs.map((p) => p.id)
 
   let assignments: AssignmentWithRelations[] = []
   if (programIds.length > 0) {
-    const { data: assignmentData, error: assignmentError } = await supabase
-      .from('assignments')
-      .select('*, member:members!member_id(*), partner:members!partner_id(*)')
-      .in('program_id', programIds)
-      .returns<AssignmentWithRelations[]>()
-    if (assignmentError) throw assignmentError
-    assignments = assignmentData ?? []
+    assignments = await fetchAllRows<AssignmentWithRelations>(() =>
+      supabase
+        .from('assignments')
+        .select('*, member:members!member_id(*), partner:members!partner_id(*)')
+        .in('program_id', programIds)
+        .order('id', { ascending: true })
+        .returns<AssignmentWithRelations[]>(),
+    )
   }
 
   const programsByDate = new Map<string, ProgramWithType[]>()

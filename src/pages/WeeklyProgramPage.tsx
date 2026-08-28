@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { fetchAllRows } from '../lib/fetchAll'
 import { useAppData } from '../context/AppDataContext'
 import {
   buildLastAssignedMap,
@@ -110,16 +111,21 @@ export function WeeklyProgramPage() {
     for (let attempt = 0; attempt < 2; attempt++) {
       if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 800))
 
-      const { data, error } = await supabase.from('programs').select('date').order('date', { ascending: true })
-      if (error) {
+      let data: { date: string }[]
+      try {
+        // 週の数は増え続けるので、1000行の上限で一覧が途中までにならないようページングする
+        data = await fetchAllRows(() =>
+          supabase.from('programs').select('date').order('date', { ascending: true }),
+        )
+      } catch (e) {
         if (attempt > 0) {
-          setError(error.message)
+          setError(e instanceof Error ? e.message : '週の一覧を取得できませんでした')
           return [] as string[]
         }
         continue
       }
 
-      const dates = Array.from(new Set((data ?? []).map((r) => r.date))).sort()
+      const dates = Array.from(new Set(data.map((r) => r.date))).sort()
       if (dates.length === 0 && attempt === 0) continue
 
       setAvailableDates(dates)
