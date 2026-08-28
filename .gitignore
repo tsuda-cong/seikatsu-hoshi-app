@@ -16,6 +16,12 @@ dist-ssr
 !.env.example
 .claude/settings.local.json
 
+# 取り込み用の元データ。実名が入っており、このリポジトリは公開なのでコミットしない
+*.xlsx
+*.xlsm
+*.csv
+*.tsv
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
