@@ -12,14 +12,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // GitHub Pagesの本番オリジンとローカル開発サーバーのみ許可する。
 // ここを直し忘れると、招待・削除がCORSで弾かれる。画面には「失敗しました」としか
-// 出ないため原因が分かりにくい箇所。組織(tsuda-cong)へリポジトリを移す予定があるので、
-// 移管後のオリジンも先に入れてある。
-const DEFAULT_ORIGIN = 'https://yida1990jw-wq.github.io'
-const ALLOWED_ORIGINS = new Set([
-  DEFAULT_ORIGIN,
-  'https://tsuda-cong.github.io',
-  'http://localhost:5173',
-])
+// 出ないため原因が分かりにくい箇所。
+// 2026-08-30に組織(tsuda-cong)へ移管済み。個人アカウントの旧オリジンは
+// 旧URL自体が404になっているため外した。
+const DEFAULT_ORIGIN = 'https://tsuda-cong.github.io'
+const ALLOWED_ORIGINS = new Set([DEFAULT_ORIGIN, 'http://localhost:5173'])
 
 function corsHeaders(req: Request) {
   const origin = req.headers.get('Origin') ?? ''
