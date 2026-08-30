@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabaseClient'
 import type { StaffRole } from '../types/domain'
@@ -27,13 +27,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roleLoading, setRoleLoading] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  // 役割を取得済みの人のid。同じ人で二度取りに行かないための目印
+  const loadedUserIdRef = useRef<string | null>(null)
+
   useEffect(() => {
     let cancelled = false
 
     async function loadStaffRole(userId: string) {
+      // onAuthStateChangeは、ログインだけでなくトークンの自動更新(TOKEN_REFRESHED)でも呼ばれる。
+      // 同じ人なら取り直さない。ここでroleLoadingを立てると、ProtectedRouteの中身が
+      // 一瞬「読み込み中」に差し替わり、AppDataProviderごと作り直されて
+      // 読み込み済みのデータが捨てられてしまう(帳票印刷のメモが空になる不具合の原因だった)
+      if (loadedUserIdRef.current === userId) return
+      // 取得の開始時点で印を付けておく。getSessionとonAuthStateChangeが
+      // ほぼ同時に走ったときに二重で問い合わせないため
+      loadedUserIdRef.current = userId
       setRoleLoading(true)
-      const { data } = await supabase.from('staff').select('role').eq('user_id', userId).single()
+      const { data, error } = await supabase.from('staff').select('role').eq('user_id', userId).single()
       if (cancelled) return
+      // 取れなかったときは印を戻し、次の機会に取り直せるようにする
+      if (error) loadedUserIdRef.current = null
       setStaffRole((data?.role as StaffRole | undefined) ?? null)
       setRoleLoading(false)
     }
@@ -51,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (newSession) {
         loadStaffRole(newSession.user.id)
       } else {
+        loadedUserIdRef.current = null
         setStaffRole(null)
         setRoleLoading(false)
       }

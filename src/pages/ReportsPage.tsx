@@ -33,7 +33,10 @@ export function ReportsPage() {
   const [from, setFrom] = useState(() => savedRange().from ?? todayString())
   const [to, setTo] = useState(() => savedRange().to ?? endOfNextMonthString())
   const [scheduleMonth, setScheduleMonth] = useState(() => savedRange().month ?? currentMonthString())
-  const [memo, setMemo] = useState(settings.reports_memo ?? '')
+  const savedMemo = settings.reports_memo ?? ''
+  const [memo, setMemo] = useState(savedMemo)
+  // 自分で書き換えたかどうか。書きかけの内容を下の同期で消さないため
+  const [memoEdited, setMemoEdited] = useState(false)
   const [savingMemo, setSavingMemo] = useState(false)
   const [memoError, setMemoError] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
@@ -42,6 +45,14 @@ export function ReportsPage() {
   useEffect(() => {
     sessionStorage.setItem(RANGE_KEY, JSON.stringify({ from, to, month: scheduleMonth }))
   }, [from, to, scheduleMonth])
+
+  // メモの初期値は画面を作った時点の設定から取るが、設定は非同期に読み込まれるため、
+  // 読み込みが終わる前にこの画面が作られると空のままになってしまう。
+  // (そのまま「保存」を押すと、実際のメモを空で上書きしてしまう)
+  // 読み込めた時点で入力欄に反映する。自分で書き換えたあとは触らない
+  useEffect(() => {
+    if (!memoEdited) setMemo(savedMemo)
+  }, [savedMemo, memoEdited])
 
   async function handleExportCsv() {
     setExporting(true)
@@ -62,6 +73,8 @@ export function ReportsPage() {
     try {
       const { error } = await supabase.from('settings').upsert({ key: 'reports_memo', value: memo })
       if (error) throw error
+      // 保存できたので、以後は他所での変更を取り込んでよい状態に戻す
+      setMemoEdited(false)
       await refetchAll()
     } catch (e) {
       setMemoError(e instanceof Error ? e.message : '保存に失敗しました')
@@ -127,7 +140,10 @@ export function ReportsPage() {
           <textarea
             className="reports-memo-textarea"
             value={memo}
-            onChange={(e) => setMemo(e.target.value)}
+            onChange={(e) => {
+              setMemo(e.target.value)
+              setMemoEdited(true)
+            }}
             placeholder="例: 8/20週分まで予定表・進行表を共有済み"
           />
           {memoError && <p className="error-text">{memoError}</p>}
