@@ -2,19 +2,22 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
+// viewer: true を付けた項目だけが閲覧者に見える。
+// ここを変えるときは App.tsx の AdminRoute の付け外しも合わせること
 const NAV_ITEMS = [
-  { to: '/', label: '週間プログラム', end: true },
+  { to: '/', label: '週間プログラム', end: true, viewer: true },
   { to: '/members', label: '名簿' },
-  { to: '/history', label: '担当履歴' },
+  { to: '/history', label: '担当履歴', viewer: true },
   { to: '/program-types', label: 'プログラム種別' },
   { to: '/songs', label: '歌' },
   { to: '/teaching-points', label: '教励課題' },
-  { to: '/reports', label: '帳票印刷' },
+  { to: '/reports', label: '帳票印刷', viewer: true },
   { to: '/settings', label: '設定' },
 ]
 
 export function Layout({ children }: { children: ReactNode }) {
-  const { signOut } = useAuth()
+  const { signOut, isAdmin } = useAuth()
+  const navItems = isAdmin ? NAV_ITEMS : NAV_ITEMS.filter((item) => item.viewer)
   // 狭い画面ではナビをハンバーガーメニューに畳む。広い画面ではCSS側で常に表示する
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
@@ -37,7 +40,7 @@ export function Layout({ children }: { children: ReactNode }) {
           {menuOpen ? '✕' : '☰'}
         </button>
         <nav className={`app-nav ${menuOpen ? 'is-open' : ''}`}>
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

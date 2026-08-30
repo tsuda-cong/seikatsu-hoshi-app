@@ -84,3 +84,14 @@ export interface Assignment {
   partner_id: string | null
   created_at: string
 }
+
+export const STAFF_ROLES = ['admin', 'viewer'] as const
+export type StaffRole = (typeof STAFF_ROLES)[number]
+
+/** ログインできる人。管理者は全操作、閲覧者は週間プログラム・担当履歴・帳票印刷の閲覧のみ */
+export interface Staff {
+  user_id: string
+  role: StaffRole
+  display_name: string
+  email: string | null
+}

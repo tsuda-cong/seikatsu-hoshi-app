@@ -2151,3 +2151,47 @@ input {
     margin-left: 6px;
   }
 }
+
+/* ---- アカウント管理(設定ページ内) ---- */
+
+.staff-section {
+  margin-top: 40px;
+}
+
+.staff-invite-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 320px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.staff-invite-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.staff-invite-form input,
+.staff-invite-form select {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.staff-invite-form button {
+  align-self: flex-start;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}

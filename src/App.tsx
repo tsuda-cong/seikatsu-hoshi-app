@@ -1,9 +1,10 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { AppDataProvider } from './context/AppDataContext'
-import { ProtectedRoute } from './components/ProtectedRoute'
+import { AdminRoute, ProtectedRoute } from './components/ProtectedRoute'
 import { Layout } from './components/Layout'
 import { LoginPage } from './pages/LoginPage'
+import { SetPasswordPage } from './pages/SetPasswordPage'
 import { WeeklyProgramPage } from './pages/WeeklyProgramPage'
 import { MembersPage } from './pages/MembersPage'
 import { MemberHistoryPage } from './pages/MemberHistoryPage'
@@ -30,7 +31,15 @@ function AdminArea() {
     <ProtectedRoute>
       <AppDataProvider>
         <Routes>
-          <Route path="/print/slips/:from/:to" element={<SlipsRangePrintPage />} />
+          {/* スリップは閲覧者には出さない */}
+          <Route
+            path="/print/slips/:from/:to"
+            element={
+              <AdminRoute>
+                <SlipsRangePrintPage />
+              </AdminRoute>
+            }
+          />
           <Route path="/print/chairman/:from/:to" element={<ChairmanPrintPage />} />
           <Route path="/print/counselor/:from/:to" element={<CounselorPrintPage />} />
           <Route path="/print/schedule/:from/:to/:month" element={<SchedulePrintPage />} />
@@ -41,13 +50,49 @@ function AdminArea() {
               <Layout>
                 <Routes>
                   <Route path="/" element={<WeeklyProgramPage />} />
-                  <Route path="/members" element={<MembersPage />} />
                   <Route path="/history" element={<MemberHistoryPage />} />
-                  <Route path="/program-types" element={<ProgramTypesPage />} />
-                  <Route path="/songs" element={<SongsPage />} />
-                  <Route path="/teaching-points" element={<TeachingPointsPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
+                  {/* ここから下は管理者専用 */}
+                  <Route
+                    path="/members"
+                    element={
+                      <AdminRoute>
+                        <MembersPage />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/program-types"
+                    element={
+                      <AdminRoute>
+                        <ProgramTypesPage />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/songs"
+                    element={
+                      <AdminRoute>
+                        <SongsPage />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/teaching-points"
+                    element={
+                      <AdminRoute>
+                        <TeachingPointsPage />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <AdminRoute>
+                        <SettingsPage />
+                      </AdminRoute>
+                    }
+                  />
                 </Routes>
               </Layout>
             }
@@ -67,7 +112,22 @@ function AppRoutes() {
   )
 }
 
+// 招待/パスワード再設定リンクは #access_token=...&type=invite のようにハッシュ部分に
+// トークンを載せて返ってくる。HashRouterはハッシュ全体をルートパスとして解釈してしまうため、
+// 通常のルーティングに乗せる前にここで検知し、専用のパスワード設定画面を表示する
+function isInviteOrRecoveryLink() {
+  return /type=(invite|recovery)/.test(window.location.hash)
+}
+
 export default function App() {
+  if (isInviteOrRecoveryLink()) {
+    return (
+      <AuthProvider>
+        <SetPasswordPage />
+      </AuthProvider>
+    )
+  }
+
   return (
     <HashRouter>
       <AuthProvider>

@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type FormE
 import { supabase } from '../lib/supabaseClient'
 import { fetchAllRows } from '../lib/fetchAll'
 import { useAppData } from '../context/AppDataContext'
+import { useAuth } from '../context/AuthContext'
 import {
   buildLastAssignedMap,
   buildLastTeachingAssignmentMapsByPool,
@@ -17,6 +18,18 @@ import { hasSectionBand, sectionColor, sectionTextColor } from '../lib/printData
 import { AssignmentCell } from '../components/AssignmentCell'
 import { AutocompleteSelect } from '../components/AutocompleteSelect'
 import type { Assignment, Member, Program, ProgramType, Song, TeachingPoint } from '../types/domain'
+
+// 閲覧者、および司会者欄で決まるプログラム(開会の言葉・閉会の言葉)で使う表示。
+// 中身を一つのspanに包んでいるのは、狭い画面でカードに組み替えたとき
+// (td が display:grid になる)に、名前と注記が別の行に落ちないようにするため
+function AssignmentReadonly({ member, note }: { member?: Member | null; note?: string }) {
+  return (
+    <span className="assignment-readonly">
+      {member ? memberDisplayName(member) : '未割当'}
+      {note && <span className="assignment-readonly-note">{note}</span>}
+    </span>
+  )
+}
 
 type ProgramWithType = Program & { program_types: ProgramType | null }
 type AssignmentWithRelations = Assignment & {
@@ -88,6 +101,7 @@ export function WeeklyProgramPage() {
     refetchHistory,
     refetchAll,
   } = useAppData()
+  const { isAdmin } = useAuth()
 
   const [availableDates, setAvailableDates] = useState<string[]>([])
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -98,7 +112,9 @@ export function WeeklyProgramPage() {
   const [error, setError] = useState<string | null>(null)
 
   const [savingChairman, setSavingChairman] = useState(false)
-  const [manageMode, setManageMode] = useState(false)
+  const [manageModeRequested, setManageModeRequested] = useState(false)
+  // 閲覧者はプログラムを編集できない。ボタン自体も出さないが、状態としても入れない
+  const manageMode = manageModeRequested && isAdmin
   const [editingProgramId, setEditingProgramId] = useState<string | null>(null)
   const [draft, setDraft] = useState<ProgramDraft>(EMPTY_DRAFT)
   const [newRow, setNewRow] = useState<ProgramDraft>(EMPTY_DRAFT)
@@ -756,20 +772,26 @@ export function WeeklyProgramPage() {
         {!manageMode && (openingProgram || closingProgram) && (
           <div className="chairman-field">
             <span className="chairman-label">司会者:</span>
-            <AssignmentCell
-              currentMember={chairman}
-              candidates={chairmanCandidates}
-              referenceDate={referenceDate}
-              saving={savingChairman}
-              placeholder="未選択"
-              onAssign={handleAssignChairman}
-            />
+            {isAdmin ? (
+              <AssignmentCell
+                currentMember={chairman}
+                candidates={chairmanCandidates}
+                referenceDate={referenceDate}
+                saving={savingChairman}
+                placeholder="未選択"
+                onAssign={handleAssignChairman}
+              />
+            ) : (
+              <AssignmentReadonly member={chairman} />
+            )}
           </div>
         )}
 
-        <button type="button" className="manage-toggle" onClick={() => setManageMode((m) => !m)}>
-          {manageMode ? '割当画面に戻る' : 'プログラムを編集'}
-        </button>
+        {isAdmin && (
+          <button type="button" className="manage-toggle" onClick={() => setManageModeRequested((m) => !m)}>
+            {manageMode ? '割当画面に戻る' : 'プログラムを編集'}
+          </button>
+        )}
       </div>
 
       {error && <p className="error-text">{error}</p>}
@@ -1049,10 +1071,15 @@ export function WeeklyProgramPage() {
                   <td data-label="担当者">
                     {isChairmanProgram ? (
                       // 司会者欄で選ぶと両方に入るので、ここでは候補を出さず結果だけ見せる
-                      <span className="assignment-readonly">
-                        {assignment?.member ? memberDisplayName(assignment.member) : '未割当'}
-                        <span className="assignment-readonly-note">司会者</span>
-                      </span>
+                      <AssignmentReadonly member={assignment?.member} note="司会者" />
+                    ) : !isAdmin ? (
+                      // 種別が付いていない行(歌など)は誰も担当しないので「-」。
+                      // 管理者側の「未設定のプログラム種別」は編集を促す文言なので閲覧者には出さない
+                      assignment?.member || programType ? (
+                        <AssignmentReadonly member={assignment?.member} />
+                      ) : (
+                        <span className="assignment-disabled">-</span>
+                      )
                     ) : programType ? (
                       <AssignmentCell
                         currentMember={assignment?.member}
@@ -1072,7 +1099,11 @@ export function WeeklyProgramPage() {
                   </td>
                   {/* ペア不要のプログラムでは、狭い画面でカードを短くするため行ごと畳む */}
                   <td data-label="ペア" className={programType?.needs_partner ? undefined : 'cell-not-applicable'}>
-                    {programType?.needs_partner ? (
+                    {!programType?.needs_partner ? (
+                      <span className="assignment-disabled">-</span>
+                    ) : !isAdmin ? (
+                      <AssignmentReadonly member={assignment?.partner} />
+                    ) : (
                       <AssignmentCell
                         currentMember={assignment?.partner}
                         candidates={partnerCandidates}
@@ -1085,8 +1116,6 @@ export function WeeklyProgramPage() {
                         proximityTooltip={getProximityTooltip(assignment?.partner?.id)}
                         onAssign={(memberId) => upsertAssignment(program.id, { partner_id: memberId })}
                       />
-                    ) : (
-                      <span className="assignment-disabled">-</span>
                     )}
                   </td>
                 </tr>
@@ -1161,7 +1190,9 @@ export function WeeklyProgramPage() {
 
       {!manageMode && !loadingWeek && sortedPrograms.length === 0 && (
         <p className="center-message">
-          この日のプログラムは登録されていません。「プログラムを編集」から追加できます。
+          {isAdmin
+            ? 'この日のプログラムは登録されていません。「プログラムを編集」から追加できます。'
+            : 'この日のプログラムはまだ登録されていません。'}
         </p>
       )}
 

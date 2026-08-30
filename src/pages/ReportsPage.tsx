@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
+import { useAuth } from '../context/AuthContext'
 import { buildProgramCsv, downloadCsv } from '../lib/csvExport'
 import { currentMonthString, endOfNextMonthString, todayString } from '../lib/localDate'
 
@@ -18,15 +19,17 @@ function savedRange(): { from?: string; to?: string; month?: string } {
   }
 }
 
+// adminOnly の帳票は閲覧者には出さない(App.tsx側でもルートを塞いである)
 const OTHER_REPORTS = [
   { key: 'assignments', label: '割当予定表' },
   { key: 'chairman', label: '司会進行用紙' },
   { key: 'counselor', label: '助言者用紙' },
-  { key: 'slips', label: 'スリップ(一括)' },
+  { key: 'slips', label: 'スリップ(一括)', adminOnly: true },
 ]
 
 export function ReportsPage() {
   const { settings, teachingPoints, refetchAll } = useAppData()
+  const { isAdmin } = useAuth()
   const [from, setFrom] = useState(() => savedRange().from ?? todayString())
   const [to, setTo] = useState(() => savedRange().to ?? endOfNextMonthString())
   const [scheduleMonth, setScheduleMonth] = useState(() => savedRange().month ?? currentMonthString())
@@ -102,7 +105,7 @@ export function ReportsPage() {
                 />
               </label>
             </li>
-            {OTHER_REPORTS.map((r) => (
+            {OTHER_REPORTS.filter((r) => isAdmin || !r.adminOnly).map((r) => (
               <li key={r.key}>
                 <Link to={`/print/${r.key}/${from}/${to}`}>{r.label}</Link>
               </li>
@@ -117,6 +120,8 @@ export function ReportsPage() {
           </div>
         </div>
 
+        {/* メモは管理者自身の覚書なので、閲覧者には出さない */}
+        {isAdmin && (
         <div className="reports-memo">
           <h2>メモ</h2>
           <textarea
@@ -130,6 +135,7 @@ export function ReportsPage() {
             {savingMemo ? '保存中...' : '保存'}
           </button>
         </div>
+        )}
       </div>
     </div>
   )

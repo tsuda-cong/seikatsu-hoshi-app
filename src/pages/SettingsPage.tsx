@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
+import { StaffSection } from '../components/StaffSection'
 
 export function SettingsPage() {
   const { settings, refetchAll } = useAppData()
@@ -38,6 +39,8 @@ export function SettingsPage() {
           {saving ? '保存中...' : '保存'}
         </button>
       </form>
+
+      <StaffSection />
     </div>
   )
 }
