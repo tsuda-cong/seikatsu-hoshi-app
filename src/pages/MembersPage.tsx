@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
+import { RowActionsMenu } from '../components/RowActionsMenu'
 import { GENDERS, MEMBER_STATUSES, POSITIONS, QUALIFICATIONS, type Member, type Qualification } from '../types/domain'
 
 interface MemberDraft {
@@ -56,16 +57,56 @@ function draftToPatch(d: MemberDraft) {
   }
 }
 
+function kanaOf(m: Member): string {
+  return [m.last_name_kana, m.first_name_kana].filter(Boolean).join(' ')
+}
+
+function toggle<T>(list: T[], value: T): T[] {
+  return list.includes(value) ? list.filter((x) => x !== value) : [...list, value]
+}
+
+/** 名前とフリガナだけの見出し。カードを開く操作もここが受ける */
+function MemberCardHead({
+  member,
+  expanded,
+  onToggle,
+  onEdit,
+  onDelete,
+}: {
+  member: Member
+  expanded: boolean
+  onToggle: () => void
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  return (
+    <div className="member-card-head">
+      {/* ⋮ をボタンの外に置くことで、メニューを押したときに開閉しないようにする */}
+      <button type="button" className="member-card-toggle" aria-expanded={expanded} onClick={onToggle}>
+        <span className="member-name">
+          {member.last_name} {member.first_name}
+        </span>
+        <span className="member-kana">{kanaOf(member)}</span>
+      </button>
+      <RowActionsMenu onEdit={onEdit} onDelete={onDelete} />
+    </div>
+  )
+}
+
 export function MembersPage() {
   const { members, programTypes, refetchAll } = useAppData()
   const [query, setQuery] = useState('')
   const [genderFilter, setGenderFilter] = useState('')
   const [positionFilter, setPositionFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<MemberDraft>(EMPTY_DRAFT)
+  const [adding, setAdding] = useState(false)
   const [newDraft, setNewDraft] = useState<MemberDraft>(EMPTY_DRAFT)
   const [error, setError] = useState<string | null>(null)
+
+  const typeNameById = useMemo(() => new Map(programTypes.map((pt) => [pt.id, pt.name])), [programTypes])
 
   const visibleMembers = useMemo(() => {
     const q = query.trim()
@@ -78,6 +119,8 @@ export function MembersPage() {
 
   function startEdit(member: Member) {
     setEditingId(member.id)
+    setExpandedId(null)
+    setAdding(false)
     setDraft(draftFromMember(member))
     setError(null)
   }
@@ -87,16 +130,17 @@ export function MembersPage() {
     setDraft(EMPTY_DRAFT)
   }
 
-  function toggleQualification(list: Qualification[], q: Qualification): Qualification[] {
-    return list.includes(q) ? list.filter((x) => x !== q) : [...list, q]
-  }
-
-  function toggleExcludedType(list: string[], typeId: string): string[] {
-    return list.includes(typeId) ? list.filter((x) => x !== typeId) : [...list, typeId]
+  function handleToggleExpand(member: Member) {
+    if (editingId === member.id) return
+    setExpandedId((id) => (id === member.id ? null : member.id))
   }
 
   async function handleSave() {
     if (!editingId) return
+    if (!draft.last_name.trim() || !draft.first_name.trim()) {
+      setError('姓と名は必須です')
+      return
+    }
     setError(null)
     try {
       const { error } = await supabase.from('members').update(draftToPatch(draft)).eq('id', editingId)
@@ -118,6 +162,7 @@ export function MembersPage() {
       const { error } = await supabase.from('members').insert(draftToPatch(newDraft))
       if (error) throw error
       setNewDraft(EMPTY_DRAFT)
+      setAdding(false)
       await refetchAll()
     } catch (e) {
       setError(e instanceof Error ? e.message : '追加に失敗しました')
@@ -136,43 +181,167 @@ export function MembersPage() {
     }
   }
 
-  function renderQualificationCheckboxes(list: Qualification[], onChange: (next: Qualification[]) => void) {
+  /** 展開したときに出す、読み取り専用の詳細 */
+  function renderDetail(member: Member) {
+    const qualifications = member.qualifications ?? []
+    const excluded = (member.excluded_program_type_ids ?? [])
+      .map((id) => typeNameById.get(id))
+      .filter((name): name is string => !!name)
+
     return (
-      <div className="crud-checkbox-group">
-        {QUALIFICATIONS.map((q) => (
-          <label key={q}>
-            <input
-              type="checkbox"
-              checked={list.includes(q)}
-              onChange={() => onChange(toggleQualification(list, q))}
-            />
-            {q}
-          </label>
-        ))}
+      <div className="member-card-panel">
+        <dl className="member-facts">
+          <div>
+            <dt>性別</dt>
+            <dd>{member.gender}</dd>
+          </div>
+          <div>
+            <dt>立場</dt>
+            <dd>{member.position}</dd>
+          </div>
+          <div>
+            <dt>状況</dt>
+            <dd>{member.status}</dd>
+          </div>
+        </dl>
+        <div className="member-tag-block">
+          <span className="member-tag-label">特別承認</span>
+          {qualifications.length > 0 ? (
+            <div className="member-tags">
+              {qualifications.map((q) => (
+                <span key={q} className="member-tag">
+                  {q}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="member-tag-empty">なし</p>
+          )}
+        </div>
+        <div className="member-tag-block">
+          <span className="member-tag-label">担当させない種別</span>
+          {excluded.length > 0 ? (
+            <div className="member-tags">
+              {excluded.map((name) => (
+                <span key={name} className="member-tag">
+                  {name}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="member-tag-empty">なし</p>
+          )}
+        </div>
       </div>
     )
   }
 
-  function renderExcludedTypeCheckboxes(list: string[], onChange: (next: string[]) => void) {
+  /** 追加と編集で共通の入力欄 */
+  function renderForm(value: MemberDraft, onChange: (next: MemberDraft) => void) {
     return (
-      <div className="crud-checkbox-group">
-        {programTypes.map((pt) => (
-          <label key={pt.id}>
-            <input
-              type="checkbox"
-              checked={list.includes(pt.id)}
-              onChange={() => onChange(toggleExcludedType(list, pt.id))}
-            />
-            {pt.name}
+      <>
+        <div className="member-form-grid">
+          <label>
+            姓
+            <input value={value.last_name} onChange={(e) => onChange({ ...value, last_name: e.target.value })} />
           </label>
-        ))}
-      </div>
+          <label>
+            名
+            <input value={value.first_name} onChange={(e) => onChange({ ...value, first_name: e.target.value })} />
+          </label>
+          <label>
+            姓かな
+            <input
+              value={value.last_name_kana}
+              onChange={(e) => onChange({ ...value, last_name_kana: e.target.value })}
+            />
+          </label>
+          <label>
+            名かな
+            <input
+              value={value.first_name_kana}
+              onChange={(e) => onChange({ ...value, first_name_kana: e.target.value })}
+            />
+          </label>
+          <label>
+            性別
+            <select value={value.gender} onChange={(e) => onChange({ ...value, gender: e.target.value })}>
+              {GENDERS.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            立場
+            <select value={value.position} onChange={(e) => onChange({ ...value, position: e.target.value })}>
+              {POSITIONS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            状況
+            <select value={value.status} onChange={(e) => onChange({ ...value, status: e.target.value })}>
+              {MEMBER_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <fieldset className="member-checks">
+          <legend>特別承認</legend>
+          {QUALIFICATIONS.map((q) => (
+            <label key={q}>
+              <input
+                type="checkbox"
+                checked={value.qualifications.includes(q)}
+                onChange={() => onChange({ ...value, qualifications: toggle(value.qualifications, q) })}
+              />
+              {q}
+            </label>
+          ))}
+        </fieldset>
+        <fieldset className="member-checks">
+          <legend>担当させない種別</legend>
+          {programTypes.map((pt) => (
+            <label key={pt.id}>
+              <input
+                type="checkbox"
+                checked={value.excluded_program_type_ids.includes(pt.id)}
+                onChange={() =>
+                  onChange({ ...value, excluded_program_type_ids: toggle(value.excluded_program_type_ids, pt.id) })
+                }
+              />
+              {pt.name}
+            </label>
+          ))}
+        </fieldset>
+      </>
     )
   }
 
   return (
     <div className="page">
-      <h1>名簿</h1>
+      <div className="page-header">
+        <h1>名簿</h1>
+        <button
+          type="button"
+          onClick={() => {
+            setAdding((v) => !v)
+            setEditingId(null)
+            setError(null)
+          }}
+        >
+          {adding ? '取消' : '+ 新規追加'}
+        </button>
+      </div>
+
       <div className="members-filter-bar">
         <input
           className="crud-search"
@@ -219,193 +388,57 @@ export function MembersPage() {
           </button>
         )}
       </div>
+
       {error && <p className="error-text">{error}</p>}
-      {/* 狭い画面では表を組み替えず、横スクロールで見てもらう */}
-      <div className="crud-table-scroll">
-        <table className="crud-table">
-        <thead>
-          <tr>
-            <th>姓</th>
-            <th>名</th>
-            <th>姓かな</th>
-            <th>名かな</th>
-            <th>性別</th>
-            <th>立場</th>
-            <th>状況</th>
-            <th>特別承認</th>
-            <th>担当させない種別</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {visibleMembers.map((member) =>
-            editingId === member.id ? (
-              <tr key={member.id}>
-                <td>
-                  <input value={draft.last_name} onChange={(e) => setDraft((d) => ({ ...d, last_name: e.target.value }))} />
-                </td>
-                <td>
-                  <input value={draft.first_name} onChange={(e) => setDraft((d) => ({ ...d, first_name: e.target.value }))} />
-                </td>
-                <td>
-                  <input
-                    value={draft.last_name_kana}
-                    onChange={(e) => setDraft((d) => ({ ...d, last_name_kana: e.target.value }))}
-                  />
-                </td>
-                <td>
-                  <input
-                    value={draft.first_name_kana}
-                    onChange={(e) => setDraft((d) => ({ ...d, first_name_kana: e.target.value }))}
-                  />
-                </td>
-                <td>
-                  <select value={draft.gender} onChange={(e) => setDraft((d) => ({ ...d, gender: e.target.value }))}>
-                    {GENDERS.map((g) => (
-                      <option key={g} value={g}>
-                        {g}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td>
-                  <select value={draft.position} onChange={(e) => setDraft((d) => ({ ...d, position: e.target.value }))}>
-                    {POSITIONS.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td>
-                  <select value={draft.status} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))}>
-                    {MEMBER_STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td>
-                  {renderQualificationCheckboxes(draft.qualifications, (next) =>
-                    setDraft((d) => ({ ...d, qualifications: next })),
-                  )}
-                </td>
-                <td>
-                  {renderExcludedTypeCheckboxes(draft.excluded_program_type_ids, (next) =>
-                    setDraft((d) => ({ ...d, excluded_program_type_ids: next })),
-                  )}
-                </td>
-                <td className="row-actions">
-                  <button type="button" onClick={handleSave}>
-                    保存
-                  </button>
-                  <button type="button" onClick={cancelEdit}>
-                    取消
-                  </button>
-                </td>
-              </tr>
-            ) : (
-              <tr key={member.id}>
-                <td>{member.last_name}</td>
-                <td>{member.first_name}</td>
-                <td>{member.last_name_kana}</td>
-                <td>{member.first_name_kana}</td>
-                <td>{member.gender}</td>
-                <td>{member.position}</td>
-                <td>{member.status}</td>
-                <td>{(member.qualifications ?? []).join('、')}</td>
-                <td>
-                  {(member.excluded_program_type_ids ?? [])
-                    .map((id) => programTypes.find((pt) => pt.id === id)?.name)
-                    .filter(Boolean)
-                    .join('、')}
-                </td>
-                <td className="row-actions">
-                  <button type="button" onClick={() => startEdit(member)}>
-                    編集
-                  </button>
-                  <button type="button" onClick={() => handleDelete(member)}>
-                    削除
-                  </button>
-                </td>
-              </tr>
-            ),
-          )}
-          <tr>
-            <td>
-              <input
-                placeholder="姓"
-                value={newDraft.last_name}
-                onChange={(e) => setNewDraft((d) => ({ ...d, last_name: e.target.value }))}
+
+      {adding && (
+        <div className="member-form-card">
+          <h2 className="member-form-title">新しく追加</h2>
+          {renderForm(newDraft, setNewDraft)}
+          <div className="member-form-actions">
+            <button type="button" className="primary" onClick={handleAdd}>
+              追加
+            </button>
+            <button type="button" onClick={() => setAdding(false)}>
+              取消
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="member-grid">
+        {visibleMembers.map((member) => {
+          const expanded = expandedId === member.id
+          const editing = editingId === member.id
+          return (
+            // 開いた内容はカードに重ねて出す。行を押し広げないので、下に続く一覧が
+            // 上下に動かない(見比べながら次々に開けるようにするため)
+            <div key={member.id} className={`member-card${expanded || editing ? ' is-open' : ''}`}>
+              <MemberCardHead
+                member={member}
+                expanded={expanded}
+                onToggle={() => handleToggleExpand(member)}
+                onEdit={() => startEdit(member)}
+                onDelete={() => handleDelete(member)}
               />
-            </td>
-            <td>
-              <input
-                placeholder="名"
-                value={newDraft.first_name}
-                onChange={(e) => setNewDraft((d) => ({ ...d, first_name: e.target.value }))}
-              />
-            </td>
-            <td>
-              <input
-                placeholder="姓かな"
-                value={newDraft.last_name_kana}
-                onChange={(e) => setNewDraft((d) => ({ ...d, last_name_kana: e.target.value }))}
-              />
-            </td>
-            <td>
-              <input
-                placeholder="名かな"
-                value={newDraft.first_name_kana}
-                onChange={(e) => setNewDraft((d) => ({ ...d, first_name_kana: e.target.value }))}
-              />
-            </td>
-            <td>
-              <select value={newDraft.gender} onChange={(e) => setNewDraft((d) => ({ ...d, gender: e.target.value }))}>
-                {GENDERS.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </td>
-            <td>
-              <select value={newDraft.position} onChange={(e) => setNewDraft((d) => ({ ...d, position: e.target.value }))}>
-                {POSITIONS.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </td>
-            <td>
-              <select value={newDraft.status} onChange={(e) => setNewDraft((d) => ({ ...d, status: e.target.value }))}>
-                {MEMBER_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </td>
-            <td>
-              {renderQualificationCheckboxes(newDraft.qualifications, (next) =>
-                setNewDraft((d) => ({ ...d, qualifications: next })),
+              {expanded && !editing && renderDetail(member)}
+              {editing && (
+                <div className="member-card-panel is-edit">
+                  {renderForm(draft, setDraft)}
+                  <div className="member-form-actions">
+                    <button type="button" className="primary" onClick={handleSave}>
+                      保存
+                    </button>
+                    <button type="button" onClick={cancelEdit}>
+                      取消
+                    </button>
+                  </div>
+                </div>
               )}
-            </td>
-            <td>
-              {renderExcludedTypeCheckboxes(newDraft.excluded_program_type_ids, (next) =>
-                setNewDraft((d) => ({ ...d, excluded_program_type_ids: next })),
-              )}
-            </td>
-            <td className="row-actions">
-              <button type="button" onClick={handleAdd}>
-                + 追加
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+          )
+        })}
+        {visibleMembers.length === 0 && <p className="reports-hint">該当する人がいません。</p>}
       </div>
     </div>
   )

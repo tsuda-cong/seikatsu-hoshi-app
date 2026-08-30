@@ -3,9 +3,13 @@
   --text-h: #08060d;
   --bg: #fafafa;
   --surface: #fff;
+  /* 重ねて出す面(カードの上に開く詳細など)。暗い配色では一段明るくして手前に見せる */
+  --surface-raised: #fff;
   --border: #e2e1e6;
   --accent: #6b3bff;
   --accent-bg: rgba(107, 59, 255, 0.08);
+  /* 常時うっすら色を敷いたものの上で、さらにマウスを乗せたと分かる濃さ */
+  --accent-bg-strong: rgba(107, 59, 255, 0.18);
   --accent-contrast: #fff;
   --danger: #c0362c;
   --sans: system-ui, 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
@@ -25,9 +29,11 @@
     --text-h: #f3f4f6;
     --bg: #17171b;
     --surface: #1f1f25;
+    --surface-raised: #2c2c35;
     --border: #333339;
     --accent: #a389ff;
     --accent-bg: rgba(163, 137, 255, 0.15);
+    --accent-bg-strong: rgba(163, 137, 255, 0.3);
     --accent-contrast: #17171b;
   }
 }
@@ -2194,4 +2200,286 @@ input {
   background: var(--accent);
   color: var(--accent-contrast);
   font-weight: 600;
+}
+
+/* ---- 名簿(カード表示) ---- */
+
+/* 画面幅に応じて1列→2列→3列と増える。狭い画面用の指定は要らない */
+.member-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+/* 名前の行はうっすら色を敷いて、開いたときの詳細(--surface-raised)と見分けられるようにする */
+.member-card {
+  position: relative;
+  background: var(--accent-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+/* 開いているカードの詳細が、隣や下のカードの下に潜らないようにする */
+.member-card.is-open {
+  z-index: 5;
+}
+
+.member-card-head {
+  display: flex;
+  align-items: center;
+  padding-right: 6px;
+}
+
+/* ⋮ を含めないので、メニューを押しても開閉しない */
+.member-card-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 6px 11px 14px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.member-card-toggle:hover {
+  background: var(--accent-bg-strong);
+}
+
+.member-name {
+  font-weight: 600;
+  color: var(--text-h);
+  white-space: nowrap;
+}
+
+.member-kana {
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 詳細はカードに重ねて出す。流れから外すことで、下に続くカードが動かない。
+   左右を-1pxずらしてカードの枠線と重ねている */
+.member-card-panel {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: -1px;
+  right: -1px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+/* 編集中は名前も直せるようにカード全体を覆う */
+.member-card-panel.is-edit {
+  top: -1px;
+  border-radius: 10px;
+}
+
+.member-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+}
+
+.member-facts > div {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.member-facts dt {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.member-facts dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.member-tag-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.member-tag-label {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.member-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.member-tag {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  color: var(--text-h);
+  font-size: 13px;
+}
+
+.member-tag-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.7;
+}
+
+/* 追加のときだけ、一覧の上に流し込みで出す(重ねる相手が無いため) */
+.member-form-card {
+  max-width: 560px;
+  margin-bottom: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.member-form-title {
+  font-size: 15px;
+}
+
+.member-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.member-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.member-form-grid input,
+.member-form-grid select {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  min-width: 0;
+}
+
+.member-checks {
+  margin: 0;
+  padding: 8px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.member-checks legend {
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.member-checks label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-h);
+}
+
+.member-form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.member-form-actions button {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-h);
+}
+
+.member-form-actions .primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+/* ---- 行の操作メニュー(⋮) ---- */
+
+.row-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.row-menu-trigger {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  line-height: 1;
+  font-size: 18px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+.row-menu-trigger:hover {
+  background: var(--accent-bg);
+  border-color: var(--border);
+}
+
+.row-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-width: 96px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.row-menu-dropdown button {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-h);
+  text-align: left;
+  padding: 8px 12px;
+}
+
+.row-menu-dropdown button:hover {
+  background: var(--accent-bg);
 }
