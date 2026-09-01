@@ -1,8 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
 import { RowActionsMenu } from '../components/RowActionsMenu'
-import { GENDERS, MEMBER_STATUSES, POSITIONS, QUALIFICATIONS, type Member, type Qualification } from '../types/domain'
+import {
+  GENDERS,
+  MEMBER_STATUSES,
+  POSITIONS,
+  QUALIFICATIONS,
+  type Member,
+  type ProgramType,
+  type Qualification,
+} from '../types/domain'
 
 interface MemberDraft {
   last_name: string
@@ -57,6 +65,19 @@ function draftToPatch(d: MemberDraft) {
   }
 }
 
+/**
+ * 性別と立場だけで見て、そもそも担当しうる種別かどうか。
+ * candidates.ts の getEligibleCandidates と同じ条件のうち、
+ * 特別承認(required_qualification)と個別除外は外してある
+ * — 特別承認はこの画面でこれから決めるものなので、条件に使うと堂々巡りになる
+ */
+function canEverBeAssigned(pt: ProgramType, gender: string, position: string): boolean {
+  const requiredPositions = pt.required_position ?? []
+  if (requiredPositions.length > 0 && !requiredPositions.some((p) => p === position)) return false
+  if (pt.required_gender && pt.required_gender !== gender) return false
+  return true
+}
+
 function kanaOf(m: Member): string {
   return [m.last_name_kana, m.first_name_kana].filter(Boolean).join(' ')
 }
@@ -105,6 +126,13 @@ export function MembersPage() {
   const [adding, setAdding] = useState(false)
   const [newDraft, setNewDraft] = useState<MemberDraft>(EMPTY_DRAFT)
   const [error, setError] = useState<string | null>(null)
+  // 編集フォームを閉じたあと、そのカードを「押したボタンがあった高さ」へ持ってくるための控え。
+  // フォームは画面より高く、保存・取消はその下端にある。押した時点では編集していたカードは
+  // 画面の外にあり、そのまま閉じると無関係な場所が目の前に出てしまう。
+  // 視線はクリックした指やポインターの所にあるので、そこに名前が来るのが一番見失わない
+  // (画面の中央や編集前の位置に戻すと、目を動かして探し直すことになる)。
+  // 保存では一覧を取り直して並び順が変わりうるので、スクロール量ではなくカードの位置を基準にする
+  const [scrollBack, setScrollBack] = useState<{ id: string; viewportTop: number } | null>(null)
 
   const typeNameById = useMemo(() => new Map(programTypes.map((pt) => [pt.id, pt.name])), [programTypes])
 
@@ -129,6 +157,22 @@ export function MembersPage() {
     setEditingId(null)
     setDraft(EMPTY_DRAFT)
   }
+
+  // 保存・取消を押した瞬間に、そのボタンが画面のどの高さにあったかを控える
+  function rememberScrollBack(id: string, button: HTMLElement) {
+    setScrollBack({ id, viewportTop: button.getBoundingClientRect().top })
+  }
+
+  // フォームを閉じてカードが並び直したあとに、控えておいた位置へ戻す。
+  // 保存時は一覧の取り直しを待つ必要があるので members も依存に入れている
+  useEffect(() => {
+    if (!scrollBack || editingId !== null) return
+    setScrollBack(null)
+    const el = document.querySelector(`[data-member-id="${scrollBack.id}"]`)
+    if (!el) return
+    // ずれた分だけ動かす(一覧の末尾付近では、それ以上スクロールできず多少ずれることがある)
+    window.scrollBy(0, el.getBoundingClientRect().top - scrollBack.viewportTop)
+  }, [scrollBack, editingId, members])
 
   function handleToggleExpand(member: Member) {
     if (editingId === member.id) return
@@ -238,6 +282,21 @@ export function MembersPage() {
 
   /** 追加と編集で共通の入力欄 */
   function renderForm(value: MemberDraft, onChange: (next: MemberDraft) => void) {
+    // 選んだ性別・立場では担当しえない項目まで並べると、探すのに時間がかかり見落としも出る。
+    // ただし既にチェックが付いているものは、条件から外れても隠さない
+    // (見えないまま値だけ残るのを防ぐため。外したいときは自分で外せる)
+    const assignableTypes = programTypes.filter(
+      (pt) =>
+        canEverBeAssigned(pt, value.gender, value.position) || value.excluded_program_type_ids.includes(pt.id),
+    )
+    const availableQualifications = QUALIFICATIONS.filter((q) => {
+      if (value.qualifications.includes(q)) return true
+      const requiredBy = programTypes.filter((pt) => pt.required_qualification === q)
+      // どの種別からも求められていない承認は、判断する材料が無いのでそのまま出す
+      if (requiredBy.length === 0) return true
+      return requiredBy.some((pt) => canEverBeAssigned(pt, value.gender, value.position))
+    })
+
     return (
       <>
         <div className="member-form-grid">
@@ -250,14 +309,14 @@ export function MembersPage() {
             <input value={value.first_name} onChange={(e) => onChange({ ...value, first_name: e.target.value })} />
           </label>
           <label>
-            姓かな
+            姓カナ
             <input
               value={value.last_name_kana}
               onChange={(e) => onChange({ ...value, last_name_kana: e.target.value })}
             />
           </label>
           <label>
-            名かな
+            名カナ
             <input
               value={value.first_name_kana}
               onChange={(e) => onChange({ ...value, first_name_kana: e.target.value })}
@@ -296,7 +355,10 @@ export function MembersPage() {
         </div>
         <fieldset className="member-checks">
           <legend>特別承認</legend>
-          {QUALIFICATIONS.map((q) => (
+          {availableQualifications.length === 0 && (
+            <p className="member-checks-empty">この性別・立場で該当するものはありません</p>
+          )}
+          {availableQualifications.map((q) => (
             <label key={q}>
               <input
                 type="checkbox"
@@ -309,7 +371,8 @@ export function MembersPage() {
         </fieldset>
         <fieldset className="member-checks">
           <legend>担当させない種別</legend>
-          {programTypes.map((pt) => (
+          <p className="member-checks-empty">性別・立場から担当しえないものは出していません</p>
+          {assignableTypes.map((pt) => (
             <label key={pt.id}>
               <input
                 type="checkbox"
@@ -413,7 +476,11 @@ export function MembersPage() {
           return (
             // 開いた内容はカードに重ねて出す。行を押し広げないので、下に続く一覧が
             // 上下に動かない(見比べながら次々に開けるようにするため)
-            <div key={member.id} className={`member-card${expanded || editing ? ' is-open' : ''}`}>
+            <div
+              key={member.id}
+              className={`member-card${expanded || editing ? ' is-open' : ''}`}
+              data-member-id={member.id}
+            >
               <MemberCardHead
                 member={member}
                 expanded={expanded}
@@ -426,10 +493,23 @@ export function MembersPage() {
                 <div className="member-card-panel is-edit">
                   {renderForm(draft, setDraft)}
                   <div className="member-form-actions">
-                    <button type="button" className="primary" onClick={handleSave}>
+                    <button
+                      type="button"
+                      className="primary"
+                      onClick={(e) => {
+                        rememberScrollBack(member.id, e.currentTarget)
+                        handleSave()
+                      }}
+                    >
                       保存
                     </button>
-                    <button type="button" onClick={cancelEdit}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        rememberScrollBack(member.id, e.currentTarget)
+                        cancelEdit()
+                      }}
+                    >
                       取消
                     </button>
                   </div>
