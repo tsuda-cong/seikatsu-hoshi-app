@@ -1,3 +1,4 @@
+import { lazy, Suspense, type ReactNode } from 'react'
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { AppDataProvider } from './context/AppDataContext'
@@ -14,10 +15,25 @@ import { TeachingPointsPage } from './pages/TeachingPointsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { SlipsRangePrintPage } from './pages/print/SlipsRangePrintPage'
-import { ChairmanPrintPage } from './pages/print/ChairmanPrintPage'
-import { CounselorPrintPage } from './pages/print/CounselorPrintPage'
-import { SchedulePrintPage } from './pages/print/SchedulePrintPage'
-import { AssignmentsRangePrintPage } from './pages/print/AssignmentsRangePrintPage'
+
+// PDFで作る帳票は pdf-lib(数百KB)を使うので、開いたときにだけ読み込む。
+// スリップだけは管理者がPCで使うもので、今もブラウザの印刷のまま
+const SchedulePrintPage = lazy(() =>
+  import('./pages/print/SchedulePrintPage').then((m) => ({ default: m.SchedulePrintPage })),
+)
+const AssignmentsRangePrintPage = lazy(() =>
+  import('./pages/print/AssignmentsRangePrintPage').then((m) => ({ default: m.AssignmentsRangePrintPage })),
+)
+const ChairmanPrintPage = lazy(() =>
+  import('./pages/print/ChairmanPrintPage').then((m) => ({ default: m.ChairmanPrintPage })),
+)
+const CounselorPrintPage = lazy(() =>
+  import('./pages/print/CounselorPrintPage').then((m) => ({ default: m.CounselorPrintPage })),
+)
+
+function PdfPage({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<div className="center-message">読み込み中...</div>}>{children}</Suspense>
+}
 
 function LoginRoute() {
   const { session, loading } = useAuth()
@@ -40,10 +56,38 @@ function AdminArea() {
               </AdminRoute>
             }
           />
-          <Route path="/print/chairman/:from/:to" element={<ChairmanPrintPage />} />
-          <Route path="/print/counselor/:from/:to" element={<CounselorPrintPage />} />
-          <Route path="/print/schedule/:from/:to/:month" element={<SchedulePrintPage />} />
-          <Route path="/print/assignments/:from/:to" element={<AssignmentsRangePrintPage />} />
+          <Route
+            path="/print/schedule/:from/:to/:month"
+            element={
+              <PdfPage>
+                <SchedulePrintPage />
+              </PdfPage>
+            }
+          />
+          <Route
+            path="/print/assignments/:from/:to"
+            element={
+              <PdfPage>
+                <AssignmentsRangePrintPage />
+              </PdfPage>
+            }
+          />
+          <Route
+            path="/print/chairman/:from/:to"
+            element={
+              <PdfPage>
+                <ChairmanPrintPage />
+              </PdfPage>
+            }
+          />
+          <Route
+            path="/print/counselor/:from/:to"
+            element={
+              <PdfPage>
+                <CounselorPrintPage />
+              </PdfPage>
+            }
+          />
           <Route
             path="/*"
             element={

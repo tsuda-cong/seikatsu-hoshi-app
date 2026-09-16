@@ -1,83 +1,26 @@
-import { useEffect, useState } from 'react'
+import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAppData } from '../../context/AppDataContext'
-import { PrintToolbar } from '../../components/PrintToolbar'
-import { memberDisplayName } from '../../lib/candidates'
-import { computeEndTimesMinutes, formatClockTime } from '../../lib/schedule'
-import { fetchRangeData, type RangeData } from '../../lib/printData'
-
-function formatDateSimple(dateStr: string): string {
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
-}
+import { PdfReportView } from '../../components/PdfReportView'
+import { fetchRangeData } from '../../lib/printData'
+import { buildCounselorPdf } from '../../lib/pdf/counselorPdf'
+import { loadReportFont } from '../../lib/pdf/loadFont'
+import { toCounselorModel } from '../../lib/pdf/reportModels'
 
 export function CounselorPrintPage() {
   const { from, to } = useParams<{ from: string; to: string }>()
-  const { settings, teachingPoints } = useAppData()
-  const [data, setData] = useState<RangeData | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { loading, settings, teachingPoints } = useAppData()
 
-  useEffect(() => {
-    if (!from || !to) return
-    fetchRangeData(from, to)
-      .then(setData)
-      .catch((e) => setError(e instanceof Error ? e.message : '不明なエラーが発生しました'))
-      .finally(() => setLoading(false))
-  }, [from, to])
-
-  if (loading) return <div className="center-message">読み込み中...</div>
-  if (error) return <div className="center-message error-text">{error}</div>
-  if (!data) return null
+  // 設定と課題の一覧が揃うまでは組み立てない(揃う前に組むと、終了時刻や課題が空になる)
+  const build = useMemo(() => {
+    if (!from || !to || loading) return null
+    return async () => {
+      const [data, font] = await Promise.all([fetchRangeData(from, to), loadReportFont()])
+      return buildCounselorPdf(toCounselorModel(data, settings.meeting_start_time, teachingPoints), font)
+    }
+  }, [from, to, loading, settings.meeting_start_time, teachingPoints])
 
   return (
-    <div>
-      <PrintToolbar backTo="/reports" />
-      {data.dates.map((date) => {
-        const items = data.programsByDate.get(date) ?? []
-        const endMins = computeEndTimesMinutes(settings.meeting_start_time, items)
-        const studentItems = items
-          .map((item, idx) => ({ item, endMin: endMins[idx] }))
-          .filter(({ item }) => item.teaching_point_id)
-
-        if (studentItems.length === 0) return null
-
-        return (
-          <div className="print-sheet counselor-sheet" key={date}>
-            <h1 className="counselor-title">助言者用紙</h1>
-            <h2 className="counselor-date">{formatDateSimple(date)}</h2>
-            {studentItems.map(({ item, endMin }) => {
-              const assignment = data.assignmentByProgramId.get(item.id)
-              const teachingPoint = item.teaching_point_id
-                ? teachingPoints.find((t) => t.id === item.teaching_point_id)
-                : null
-
-              return (
-                <div className="counselor-item" key={item.id}>
-                  <div className="counselor-item-title">
-                    {item.title ?? item.program_types?.name}
-                    {item.duration_minutes ? `(${item.duration_minutes}分)` : ''}
-                  </div>
-                  <div className="counselor-item-point">
-                    {teachingPoint
-                      ? `${teachingPoint.code} ${teachingPoint.title}${teachingPoint.page ?? ''}`
-                      : ''}
-                  </div>
-                  <div className="counselor-item-row">
-                    <span>{item.material}</span>
-                    <span>{assignment?.member ? memberDisplayName(assignment.member) : ''}</span>
-                  </div>
-                  <div className="counselor-item-row">
-                    <span>{item.content}</span>
-                    <span>{assignment?.partner ? `(${memberDisplayName(assignment.partner)})` : ''}</span>
-                  </div>
-                  <div className="counselor-item-endtime">〜{formatClockTime(endMin)}</div>
-                </div>
-              )
-            })}
-          </div>
-        )
-      })}
-    </div>
+    <PdfReportView title="助言者用紙" fileName={`助言者用紙_${from}_${to}.pdf`} backTo="/reports" build={build} />
   )
 }
