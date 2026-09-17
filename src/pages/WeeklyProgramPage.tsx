@@ -14,6 +14,7 @@ import {
   PRAYER_TYPE_NAME,
 } from '../lib/candidates'
 import { todayString } from '../lib/localDate'
+import { buildTalkDatesInWeek } from '../lib/talkDates'
 import { hasSectionBand, sectionColor, sectionTextColor } from '../lib/printData'
 import { AssignmentCell } from '../components/AssignmentCell'
 import { AutocompleteSelect } from '../components/AutocompleteSelect'
@@ -95,6 +96,7 @@ export function WeeklyProgramPage() {
     programTypes,
     songs,
     teachingPoints,
+    talkDates,
     historyRows,
     loading: appDataLoading,
     error: appDataError,
@@ -258,6 +260,12 @@ export function WeeklyProgramPage() {
   const prayerRecencyMap = useMemo(
     () => buildPrayerRecencyMap(historyRows, referenceDate),
     [historyRows, referenceDate],
+  )
+
+  // 同じ週(月曜〜日曜)の週末に講演を担当する人。除外はせず、注意喚起にのみ使う
+  const talkDatesInWeek = useMemo(
+    () => buildTalkDatesInWeek(talkDates, referenceDate),
+    [talkDates, referenceDate],
   )
 
   const nearbyDates = useMemo(() => {
@@ -699,6 +707,7 @@ export function WeeklyProgramPage() {
         lastAssignedMap: lastAssignedAsMemberMap,
         referenceDate,
         duplicateMemberIds: openingProgram ? duplicateSetFor(openingProgram.id, 'member_id') : new Set(),
+        talkDatesInWeek,
       })
     : []
 
@@ -777,6 +786,7 @@ export function WeeklyProgramPage() {
                 currentMember={chairman}
                 candidates={chairmanCandidates}
                 referenceDate={referenceDate}
+                talkDateInWeek={chairman ? (talkDatesInWeek.get(chairman.id)?.[0] ?? null) : null}
                 saving={savingChairman}
                 placeholder="未選択"
                 onAssign={handleAssignChairman}
@@ -996,6 +1006,7 @@ export function WeeklyProgramPage() {
                         : programType.recency_pool && memberPoolKey
                           ? lastTeachingAssignmentAsMemberMapsByPool.get(memberPoolKey)
                           : undefined,
+                    talkDatesInWeek,
                   })
                 : []
 
@@ -1027,6 +1038,7 @@ export function WeeklyProgramPage() {
                       // 課題付きプログラムのペアは、主担当と一巡するまでの間に既にペアだった人を優先度下げ(除外はしない)
                       pairingMap: program.teaching_point_id ? pairingMap : undefined,
                       currentMemberId: program.teaching_point_id ? assignment?.member?.id : undefined,
+                      talkDatesInWeek,
                     })
                   : []
 
@@ -1091,6 +1103,9 @@ export function WeeklyProgramPage() {
                         nearTwoWeeks={!!assignment?.member && twoWeeksAwayIds.has(assignment.member.id)}
                         proximityLabel={getProximityLabel(assignment?.member?.id)}
                         proximityTooltip={getProximityTooltip(assignment?.member?.id)}
+                        talkDateInWeek={
+                          assignment?.member ? (talkDatesInWeek.get(assignment.member.id)?.[0] ?? null) : null
+                        }
                         onAssign={(memberId) => upsertAssignment(program.id, { member_id: memberId })}
                       />
                     ) : (
@@ -1114,6 +1129,9 @@ export function WeeklyProgramPage() {
                         nearTwoWeeks={!!assignment?.partner && twoWeeksAwayIds.has(assignment.partner.id)}
                         proximityLabel={getProximityLabel(assignment?.partner?.id)}
                         proximityTooltip={getProximityTooltip(assignment?.partner?.id)}
+                        talkDateInWeek={
+                          assignment?.partner ? (talkDatesInWeek.get(assignment.partner.id)?.[0] ?? null) : null
+                        }
                         onAssign={(memberId) => upsertAssignment(program.id, { partner_id: memberId })}
                       />
                     )}

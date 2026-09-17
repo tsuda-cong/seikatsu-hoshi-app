@@ -2124,3 +2124,195 @@ input {
   color: var(--text);
   opacity: 0.7;
 }
+
+/* ---- 講演日付 ---- */
+
+/* 入力は「この日はだれ」という流れなので、日付と名前を上下に並べて一息で押せるようにする */
+.talk-entry {
+  margin: 14px 0 24px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.talk-entry-date {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.talk-entry-date label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.talk-entry-date input {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.talk-entry-weekday {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.talk-entry-label {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.talk-speaker-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.talk-speaker {
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--accent-bg);
+  color: var(--text-h);
+  font-size: 15px;
+}
+
+.talk-speaker:hover {
+  background: var(--accent-bg-strong);
+  border-color: var(--accent);
+}
+
+/* 今表示している日付に登録済みの人。誰まで入れたかが分かるように印を付ける */
+.talk-speaker.is-registered {
+  background: var(--surface-raised);
+  color: var(--text);
+  opacity: 0.75;
+}
+
+.talk-speaker-check {
+  margin-right: 5px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.talk-added {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.talk-notice {
+  margin: 0;
+  font-size: 13px;
+  color: #c07a1f;
+}
+
+@media (prefers-color-scheme: dark) {
+  .talk-notice {
+    color: #e0a94a;
+  }
+}
+
+.talk-list-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.talk-list-count {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text);
+  opacity: 0.8;
+}
+
+/* 講演の予定表と同じ「日付ごと」の並びにして、見比べながら確かめられるようにする */
+.talk-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 560px;
+}
+
+.talk-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.talk-list-date {
+  flex-shrink: 0;
+  /* 日付の桁数で名前の位置がずれないようにする */
+  min-width: 5.5em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-h);
+}
+
+.talk-list-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.talk-list-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-h);
+  font-weight: 500;
+}
+
+.talk-list-remove {
+  padding: 0 5px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.talk-list-remove:hover {
+  color: var(--danger);
+  opacity: 1;
+}
+
+.talk-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.7;
+}
+
+/* 割り当て済みの名前の後ろに出す、週末の講演の印 */
+.assignment-talk {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #c07a1f;
+}
+
+@media (prefers-color-scheme: dark) {
+  .assignment-talk {
+    color: #e0a94a;
+  }
+}

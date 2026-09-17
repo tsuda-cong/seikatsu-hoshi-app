@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { supabase } from '../lib/supabaseClient'
 import { fetchAllRows } from '../lib/fetchAll'
 import type { AssignmentHistoryRow } from '../lib/candidates'
-import type { Member, ProgramType, Song, TeachingPoint } from '../types/domain'
+import type { Member, ProgramType, Song, TalkDate, TeachingPoint } from '../types/domain'
 
 const DEFAULT_SETTINGS: Record<string, string> = {
   meeting_start_time: '19:00',
@@ -27,6 +27,8 @@ interface AppDataContextValue {
   songs: Song[]
   teachingPoints: TeachingPoint[]
   settings: Record<string, string>
+  /** 講演(週末の集会)の担当日。管理者しか読めないので、閲覧者では常に空になる */
+  talkDates: TalkDate[]
   /**
    * 担当履歴の生データ。前回/今後の担当日やペア履歴は、表示している週の日付を基準に
    * 都度計算する必要があるため、集計済みマップではなく生の行を渡す(src/lib/candidates.ts参照)。
@@ -35,6 +37,7 @@ interface AppDataContextValue {
   loading: boolean
   error: string | null
   refetchHistory: () => Promise<void>
+  refetchTalkDates: () => Promise<void>
   refetchAll: () => Promise<void>
 }
 
@@ -46,6 +49,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [songs, setSongs] = useState<Song[]>([])
   const [teachingPoints, setTeachingPoints] = useState<TeachingPoint[]>([])
   const [settings, setSettings] = useState<Record<string, string>>(DEFAULT_SETTINGS)
+  const [talkDates, setTalkDates] = useState<TalkDate[]>([])
   const [historyRows, setHistoryRows] = useState<AssignmentHistoryRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -85,6 +89,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setHistoryRows(rows)
   }, [])
 
+  // 講演の担当日は管理者しか読めない(閲覧者には0件が返る)。
+  // テーブルが未作成の環境でも他のデータ取得を止めないよう、エラーは無視する
+  const fetchTalkDates = useCallback(async () => {
+    const { data, error } = await supabase.from('talk_dates').select('*').order('date', { ascending: true })
+    if (!error) setTalkDates(data ?? [])
+  }, [])
+
   const loadAll = useCallback(async () => {
     const [membersRes, programTypesRes, songsRes, teachingPointsRes, settingsRes] = await Promise.all([
       supabase.from('members').select('*').order('last_name_kana', { ascending: true }),
@@ -121,8 +132,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       })
     }
 
-    await fetchHistory()
-  }, [fetchHistory])
+    await Promise.all([fetchHistory(), fetchTalkDates()])
+  }, [fetchHistory, fetchTalkDates])
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -155,10 +166,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         songs,
         teachingPoints,
         settings,
+        talkDates,
         historyRows,
         loading,
         error,
         refetchHistory: fetchHistory,
+        refetchTalkDates: fetchTalkDates,
         refetchAll: fetchAll,
       }}
     >

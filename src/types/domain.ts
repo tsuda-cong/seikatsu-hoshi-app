@@ -7,8 +7,20 @@ export type MemberStatus = (typeof MEMBER_STATUSES)[number]
 export const GENDERS = ['男性', '女性'] as const
 export type Gender = (typeof GENDERS)[number]
 
-export const QUALIFICATIONS = ['祈り', '聖書研究朗読者', '聖書研究司会', '全体司会', '朗読', '話'] as const
+export const QUALIFICATIONS = ['祈り', '聖書研究朗読者', '聖書研究司会', '全体司会', '朗読', '話', '講演'] as const
 export type Qualification = (typeof QUALIFICATIONS)[number]
+
+/** 講演(週末の集会)の講演者であることを表す特別承認。講演日付のページに出る人を決める */
+export const TALK_QUALIFICATION: Qualification = '講演'
+
+/**
+ * どのプログラム種別からも求められない承認について、持ちうる性別・立場。
+ * 名簿の編集で、該当しない人にはチェック欄を出さないために使う
+ * (種別から求められる承認は、種別の条件から判断している)
+ */
+export const QUALIFICATION_ELIGIBILITY: Partial<Record<Qualification, { gender: Gender; positions: Position[] }>> = {
+  講演: { gender: '男性', positions: ['長老', '援助奉仕者'] },
+}
 
 export interface Member {
   id: string
@@ -82,6 +94,14 @@ export interface Assignment {
   program_id: string | null
   member_id: string | null
   partner_id: string | null
+  created_at: string
+}
+
+/** 講演(週末の集会)の担当日。1人に先々の日付が複数入る */
+export interface TalkDate {
+  id: string
+  member_id: string
+  date: string
   created_at: string
 }
 

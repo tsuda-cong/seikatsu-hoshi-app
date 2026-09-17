@@ -9,6 +9,7 @@ import { SetPasswordPage } from './pages/SetPasswordPage'
 import { WeeklyProgramPage } from './pages/WeeklyProgramPage'
 import { MembersPage } from './pages/MembersPage'
 import { MemberHistoryPage } from './pages/MemberHistoryPage'
+import { TalksPage } from './pages/TalksPage'
 import { ProgramTypesPage } from './pages/ProgramTypesPage'
 import { SongsPage } from './pages/SongsPage'
 import { TeachingPointsPage } from './pages/TeachingPointsPage'
@@ -102,6 +103,14 @@ function AdminArea() {
                     element={
                       <AdminRoute>
                         <MembersPage />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/talks"
+                    element={
+                      <AdminRoute>
+                        <TalksPage />
                       </AdminRoute>
                     }
                   />

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { Candidate } from '../lib/candidates'
 import { formatLastAssigned, memberDisplayName } from '../lib/candidates'
+import { formatTalkDate } from '../lib/talkDates'
 
 interface CandidateComboboxProps {
   candidates: Candidate[]
@@ -66,6 +67,10 @@ export function CandidateCombobox({
               </span>
               <span className="candidate-meta">
                 {c.isDuplicateToday && <span className="candidate-warning">⚠ 本日他の担当あり</span>}
+                {/* 同じ週の週末に講演がある人。選ぶことはできる(注意喚起だけ) */}
+                {c.talkDateInWeek && (
+                  <span className="candidate-warning">⚠ 週末に講演 {formatTalkDate(c.talkDateInWeek)}</span>
+                )}
                 {(() => {
                   const { period, typeName } = formatLastAssigned(
                     c.lastAssignedDate,

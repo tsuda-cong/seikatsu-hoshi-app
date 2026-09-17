@@ -234,6 +234,8 @@ export interface Candidate {
   isDuplicateToday: boolean
   /** 指定した主担当者と過去にペアを組んだことがある(除外はせず表示のみで区別) */
   previouslyPaired: boolean
+  /** 同じ週(月曜〜日曜)の週末に講演の担当がある場合、その日付(選択は可能、注意喚起のみ) */
+  talkDateInWeek: string | null
 }
 
 interface GetCandidatesParams {
@@ -251,6 +253,8 @@ interface GetCandidatesParams {
   /** ペアの優先順位付け用: 現在の主担当者id。候補者全員と一巡するまでの間に既にペアだった候補は優先度を下げる(除外はしない) */
   pairingMap?: PairingMap
   currentMemberId?: string | null
+  /** memberId -> 同じ週にある講演の日付。除外はせず、注意喚起の表示にのみ使う */
+  talkDatesInWeek?: Map<string, string[]>
 }
 
 /**
@@ -268,6 +272,7 @@ export function getEligibleCandidates({
   broadRecencyMap,
   pairingMap,
   currentMemberId,
+  talkDatesInWeek,
 }: GetCandidatesParams): Candidate[] {
   const requiredPositions = programType.required_position ?? []
   const requiredQualification = programType.required_qualification
@@ -296,6 +301,7 @@ export function getEligibleCandidates({
       lastAssignedType: broad ? broad.typeName : null,
       isDuplicateToday: duplicateMemberIds?.has(member.id) ?? false,
       previouslyPaired: currentRoundPaired.has(member.id),
+      talkDateInWeek: talkDatesInWeek?.get(member.id)?.[0] ?? null,
     }
   })
 

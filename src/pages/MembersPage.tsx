@@ -7,6 +7,7 @@ import {
   MEMBER_STATUSES,
   POSITIONS,
   QUALIFICATIONS,
+  QUALIFICATION_ELIGIBILITY,
   type Member,
   type ProgramType,
   type Qualification,
@@ -291,6 +292,11 @@ export function MembersPage() {
     )
     const availableQualifications = QUALIFICATIONS.filter((q) => {
       if (value.qualifications.includes(q)) return true
+      // 週日の集会の種別からは求められない承認(講演)は、持ちうる性別・立場を直接決めてある
+      const eligibility = QUALIFICATION_ELIGIBILITY[q]
+      if (eligibility) {
+        return value.gender === eligibility.gender && eligibility.positions.some((p) => p === value.position)
+      }
       const requiredBy = programTypes.filter((pt) => pt.required_qualification === q)
       // どの種別からも求められていない承認は、判断する材料が無いのでそのまま出す
       if (requiredBy.length === 0) return true
