@@ -4,15 +4,17 @@ import { useAuth } from '../context/AuthContext'
 
 // viewer: true を付けた項目だけが閲覧者に見える。
 // ここを変えるときは App.tsx の AdminRoute の付け外しも合わせること
+// 並びは、ふだんよく開くものから順(割り当て → 確認 → 印刷 → 入力)。
+// 名簿より下は、たまにしか触らない設定に近いもの
 const NAV_ITEMS = [
   { to: '/', label: '週間プログラム', end: true, viewer: true },
-  { to: '/members', label: '名簿' },
   { to: '/history', label: '担当履歴', viewer: true },
-  { to: '/talks', label: '講演日付' },
-  { to: '/program-types', label: 'プログラム種別' },
-  { to: '/songs', label: '歌' },
-  { to: '/teaching-points', label: '教励課題' },
   { to: '/reports', label: '帳票印刷', viewer: true },
+  { to: '/talks', label: '講演日付' },
+  { to: '/members', label: '名簿' },
+  { to: '/program-types', label: 'プログラム種別' },
+  { to: '/teaching-points', label: '教励課題' },
+  { to: '/songs', label: '歌' },
   { to: '/settings', label: '設定' },
 ]
 
