@@ -18,6 +18,7 @@ import { buildTalkDatesInWeek } from '../lib/talkDates'
 import { hasSectionBand, sectionColor, sectionTextColor } from '../lib/printData'
 import { AssignmentCell } from '../components/AssignmentCell'
 import { AutocompleteSelect } from '../components/AutocompleteSelect'
+import { WeekPager } from '../components/WeekPager'
 import type { Assignment, Member, Program, ProgramType, Song, TeachingPoint } from '../types/domain'
 
 // 閲覧者、および司会者欄で決まるプログラム(開会の言葉・閉会の言葉)で使う表示。
@@ -36,6 +37,12 @@ type ProgramWithType = Program & { program_types: ProgramType | null }
 type AssignmentWithRelations = Assignment & {
   member: Member | null
   partner: Member | null
+}
+
+/** 1週分の中身。先に読んでおくため、画面の状態とは別にまとめて持てるようにしてある */
+interface WeekData {
+  programs: ProgramWithType[]
+  assignments: AssignmentWithRelations[]
 }
 
 interface ProgramDraft {
@@ -176,55 +183,107 @@ export function WeeklyProgramPage() {
     availableDatesRef.current = availableDates
   }, [availableDates])
 
-  const loadWeek = useCallback(async (date: string) => {
-    setLoadingWeek(true)
-    setError(null)
-    try {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 800))
+  // 一度読んだ週は覚えておき、前後の週は先に読んでおく。
+  // ページ送り(左右のボタン・スワイプ)でめくった瞬間に中身が出るようにするため。
+  // 自分が変更した週は必ず消してから読み直す(reloadWeek)
+  const weekCacheRef = useRef(new Map<string, WeekData>())
+  // 遅れて届いた読み込み結果で、今見ている週を上書きしないようにするための控え
+  const currentDateRef = useRef<string | null>(null)
 
-        const { data: programData, error: programError } = await supabase
-          .from('programs')
-          .select('*, program_types(*)')
-          .eq('date', date)
-          .order('order_no', { ascending: true })
-          .returns<ProgramWithType[]>()
+  const fetchWeek = useCallback(async (date: string): Promise<WeekData | null> => {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 800))
 
-        if (programError) throw programError
+      const { data: programData, error: programError } = await supabase
+        .from('programs')
+        .select('*, program_types(*)')
+        .eq('date', date)
+        .order('order_no', { ascending: true })
+        .returns<ProgramWithType[]>()
 
-        const weekPrograms = programData ?? []
-        // 日付一覧に載っている週なのに0件で返るのは、認証が効く前に走ったとき。
-        // (まだ何も登録していない週なら一覧にも載らないので、取り違えることはない)
-        if (weekPrograms.length === 0 && attempt === 0 && availableDatesRef.current.includes(date)) continue
+      if (programError) throw programError
 
-        setPrograms(weekPrograms)
+      const weekPrograms = programData ?? []
+      // 日付一覧に載っている週なのに0件で返るのは、認証が効く前に走ったとき。
+      // (まだ何も登録していない週なら一覧にも載らないので、取り違えることはない)
+      if (weekPrograms.length === 0 && attempt === 0 && availableDatesRef.current.includes(date)) continue
 
-        const programIds = weekPrograms.map((p) => p.id)
-        if (programIds.length === 0) {
-          setAssignments([])
-          return
-        }
+      const programIds = weekPrograms.map((p) => p.id)
+      if (programIds.length === 0) return { programs: weekPrograms, assignments: [] }
 
-        const { data: assignmentData, error: assignmentError } = await supabase
-          .from('assignments')
-          .select('*, member:members!member_id(*), partner:members!partner_id(*)')
-          .in('program_id', programIds)
-          .returns<AssignmentWithRelations[]>()
+      const { data: assignmentData, error: assignmentError } = await supabase
+        .from('assignments')
+        .select('*, member:members!member_id(*), partner:members!partner_id(*)')
+        .in('program_id', programIds)
+        .returns<AssignmentWithRelations[]>()
 
-        if (assignmentError) throw assignmentError
-        setAssignments(assignmentData ?? [])
-        return
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '不明なエラーが発生しました')
-    } finally {
-      setLoadingWeek(false)
+      if (assignmentError) throw assignmentError
+      return { programs: weekPrograms, assignments: assignmentData ?? [] }
     }
+    return null
   }, [])
+
+  const loadWeek = useCallback(
+    async (date: string) => {
+      currentDateRef.current = date
+      const cached = weekCacheRef.current.get(date)
+      if (cached) {
+        // 先に読んである週は待たずに出し、裏で取り直して最新に合わせる
+        setPrograms(cached.programs)
+        setAssignments(cached.assignments)
+        setLoadingWeek(false)
+      } else {
+        setLoadingWeek(true)
+      }
+      setError(null)
+      try {
+        const data = await fetchWeek(date)
+        if (!data) return
+        weekCacheRef.current.set(date, data)
+        // 読んでいる間に別の週へ移っていたら、そちらの表示を壊さないよう何もしない
+        if (currentDateRef.current !== date) return
+        setPrograms(data.programs)
+        setAssignments(data.assignments)
+      } catch (e) {
+        if (currentDateRef.current === date) {
+          setError(e instanceof Error ? e.message : '不明なエラーが発生しました')
+        }
+      } finally {
+        if (currentDateRef.current === date) setLoadingWeek(false)
+      }
+    },
+    [fetchWeek],
+  )
+
+  /** 自分で変更したあとの読み直し。覚えていた内容は古いので必ず捨てる */
+  const reloadWeek = useCallback(
+    async (date: string) => {
+      weekCacheRef.current.delete(date)
+      await loadWeek(date)
+    },
+    [loadWeek],
+  )
 
   useEffect(() => {
     if (selectedDate) loadWeek(selectedDate)
   }, [selectedDate, loadWeek])
+
+  // 前後の週を先に読んでおく(めくった瞬間に出すため)。表示は差し替えない
+  useEffect(() => {
+    if (!selectedDate || loadingWeek) return
+    const idx = availableDates.indexOf(selectedDate)
+    if (idx === -1) return
+    for (const neighbor of [availableDates[idx - 1], availableDates[idx + 1]]) {
+      if (!neighbor || weekCacheRef.current.has(neighbor)) continue
+      fetchWeek(neighbor)
+        .then((data) => {
+          if (data) weekCacheRef.current.set(neighbor, data)
+        })
+        .catch(() => {
+          // 先読みなので、失敗しても実際にその週を開いたときに読み直せばよい
+        })
+    }
+  }, [selectedDate, availableDates, loadingWeek, fetchWeek])
 
   // 候補者の前回/今後日付・ペア履歴は、表示中の週の日付を基準に都度計算する
   // (先の週まで入力済みの場合に、未来の日付を「前回」と誤表示しないため)
@@ -400,17 +459,18 @@ export function WeeklyProgramPage() {
   const oneWeekAwayIds = useMemo(() => new Set([...prev1Map.keys(), ...next1Map.keys()]), [prev1Map, next1Map])
   const twoWeeksAwayIds = useMemo(() => new Set([...prev2Map.keys(), ...next2Map.keys()]), [prev2Map, next2Map])
 
-  function goPrev() {
+  // ページ送り(WeekPager)にそのまま渡すので、毎回作り直さないようにしてある
+  const goPrev = useCallback(() => {
     if (!selectedDate) return
     const candidates = availableDates.filter((d) => d < selectedDate)
     if (candidates.length > 0) setSelectedDate(candidates[candidates.length - 1])
-  }
+  }, [availableDates, selectedDate])
 
-  function goNext() {
+  const goNext = useCallback(() => {
     if (!selectedDate) return
     const next = availableDates.find((d) => d > selectedDate)
     if (next) setSelectedDate(next)
-  }
+  }, [availableDates, selectedDate])
 
   function goFirst() {
     const first = availableDates[0]
@@ -490,7 +550,7 @@ export function WeeklyProgramPage() {
         const { error } = await supabase.from('assignments').insert({ program_id: programId, ...patch })
         if (error) throw error
       }
-      if (selectedDate) await loadWeek(selectedDate)
+      if (selectedDate) await reloadWeek(selectedDate)
       await refetchHistory()
     } catch (e) {
       setError(e instanceof Error ? e.message : '保存に失敗しました')
@@ -538,7 +598,7 @@ export function WeeklyProgramPage() {
       const { error } = await supabase.from('programs').update(draftToPatch(draft)).eq('id', editingProgramId)
       if (error) throw error
       cancelEdit()
-      if (selectedDate) await loadWeek(selectedDate)
+      if (selectedDate) await reloadWeek(selectedDate)
       await refetchHistory()
     } catch (e) {
       setError(e instanceof Error ? e.message : '保存に失敗しました')
@@ -560,7 +620,7 @@ export function WeeklyProgramPage() {
 
       // 担当者を選んだ時点で割り当てを作るため、ここでは空の割り当ては作らない
       setNewRow(EMPTY_DRAFT)
-      await loadWeek(selectedDate)
+      await reloadWeek(selectedDate)
       await loadAvailableDates()
     } catch (e) {
       setError(e instanceof Error ? e.message : '追加に失敗しました')
@@ -626,7 +686,7 @@ export function WeeklyProgramPage() {
       // 担当者を選んだ時点で割り当てを作るため、ここでは空の割り当ては作らない
       setPasteText('')
       setPasteResult({ added: created?.length ?? 0, warnings })
-      await loadWeek(selectedDate)
+      await reloadWeek(selectedDate)
       await loadAvailableDates()
     } catch (e) {
       setError(e instanceof Error ? e.message : '取り込みに失敗しました')
@@ -650,7 +710,7 @@ export function WeeklyProgramPage() {
       const { error: deleteProgramError } = await supabase.from('programs').delete().eq('id', program.id)
       if (deleteProgramError) throw deleteProgramError
 
-      if (selectedDate) await loadWeek(selectedDate)
+      if (selectedDate) await reloadWeek(selectedDate)
       await loadAvailableDates()
       await refetchHistory()
     } catch (e) {
@@ -673,7 +733,7 @@ export function WeeklyProgramPage() {
       ])
       if (e1) throw e1
       if (e2) throw e2
-      if (selectedDate) await loadWeek(selectedDate)
+      if (selectedDate) await reloadWeek(selectedDate)
     } catch (e) {
       setError(e instanceof Error ? e.message : '並べ替えに失敗しました')
     }
@@ -837,6 +897,15 @@ export function WeeklyProgramPage() {
         </details>
       )}
 
+      {/* 左右のボタンとスワイプで前後の週へ送る。日付の操作欄は動かさず、中身だけをめくる */}
+      <WeekPager
+        hasPrev={hasPrev}
+        hasNext={hasNext}
+        onPrev={goPrev}
+        onNext={goNext}
+        // プログラムの編集中は、入力の途中で週が変わらないようスワイプを止める
+        swipeEnabled={editingProgramId === null && savingProgramId === null}
+      >
       {loadingWeek ? (
         <div className="center-message">読み込み中...</div>
       ) : (
@@ -1213,6 +1282,7 @@ export function WeeklyProgramPage() {
             : 'この日のプログラムはまだ登録されていません。'}
         </p>
       )}
+      </WeekPager>
 
       <datalist id="section-options">
         {SECTION_PRESETS.map((s) => (

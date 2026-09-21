@@ -2316,3 +2316,75 @@ input {
     color: #e0a94a;
   }
 }
+
+/* ---- 週のページ送り ---- */
+
+.week-pager {
+  position: relative;
+  /* めくる最中に中身が横へ出ていくので、横だけ切り取る。
+     clip にしているのは、候補の一覧が下にはみ出す分を切らないため(hidden だと縦も切られる) */
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.week-pager-content {
+  /* transform と transition は、指の動きに合わせて JavaScript 側から与える */
+  will-change: transform;
+}
+
+/* 送りボタンはマウスのある端末にだけ出す。
+   スマホ・タブレットはスワイプで送るので、画面を狭めるボタンは出さない */
+.week-pager-button {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .week-pager-button {
+    position: fixed;
+    top: 50%;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* 指でもマウスでも押しやすい大きさ */
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    transform: translateY(-50%);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--text-h);
+    font-size: 18px;
+    line-height: 1;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+    /* ふだんは薄く。表の内容を邪魔しないため */
+    opacity: 0.2;
+    transition: opacity 0.15s ease-out;
+  }
+
+  /* 表の上にマウスがあるとき(＝読んでいるとき)は少しはっきりさせる */
+  .week-pager:hover .week-pager-button {
+    opacity: 0.55;
+  }
+
+  .week-pager-button:hover {
+    opacity: 1;
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .week-pager-button:disabled {
+    opacity: 0.08;
+    box-shadow: none;
+  }
+
+  /* 内容(最大1100px)の外側に置く。窓が狭いときは端に寄せる */
+  .week-pager-button.is-prev {
+    left: max(8px, calc(50% - 550px - 52px));
+  }
+
+  .week-pager-button.is-next {
+    right: max(8px, calc(50% - 550px - 52px));
+  }
+}
