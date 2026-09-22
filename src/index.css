@@ -2388,3 +2388,44 @@ input {
     right: max(8px, calc(50% - 550px - 52px));
   }
 }
+
+/* ---- スクロールしても残す部分 ---- */
+
+/* 週ごとのプログラムの日付の操作欄・担当履歴の名前欄・講演日付の入力欄は、
+   下までスクロールしても画面の上に残す。貼り付く位置は、位置固定のヘッダーのすぐ下。
+   ヘッダーの高さは画面の幅で変わるので、Layout.tsx が実測して --app-header-h に入れている */
+.date-nav,
+.history-picker,
+.talk-entry {
+  position: sticky;
+  top: var(--app-header-h, 56px);
+  z-index: 15;
+}
+
+/* 背景と上下の余白が無いと、スクロールした中身が固定部分の裏から透けて見える */
+.date-nav,
+.history-picker {
+  padding: 10px 0;
+  margin-bottom: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.history-picker {
+  margin-top: 8px;
+}
+
+/* 入力の箱は元から背景と枠を持っている。ヘッダーとの間に隙間があると
+   そこから中身が透けるので、上の余白だけ詰める */
+.talk-entry {
+  margin-top: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 表の1行目が固定部分の下にもぐったまま始まらないよう、少しだけ間を空ける */
+.date-nav + .program-table,
+.date-nav + .error-text,
+.date-nav + .paste-import,
+.date-nav + .week-pager {
+  margin-top: 14px;
+}

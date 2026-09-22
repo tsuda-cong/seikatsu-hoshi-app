@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -24,6 +24,24 @@ export function Layout({ children }: { children: ReactNode }) {
   // 狭い画面ではナビをハンバーガーメニューに畳む。広い画面ではCSS側で常に表示する
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
+  const headerRef = useRef<HTMLElement>(null)
+
+  // 各ページで「スクロールしても固定しておく部分」は、このヘッダーのすぐ下に貼り付く。
+  // ヘッダーの高さは画面の幅で変わる(狭いと折り返す・メニューを開くと伸びる)ので、
+  // 決め打ちにせず実際の高さを測って渡す
+  useEffect(() => {
+    const el = headerRef.current
+    if (!el) return
+    const observer = new ResizeObserver(() => {
+      // メニューを開いている間は測らない。開いた分だけ高さが伸びるので、
+      // そのまま反映すると固定している部分が下へ飛んでしまう
+      if (menuOpen) return
+      const height = Math.round(el.getBoundingClientRect().height)
+      document.documentElement.style.setProperty('--app-header-h', `${height}px`)
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [menuOpen])
 
   // 画面を移動したら閉じる(開いたままだと次の画面が隠れてしまう)
   useEffect(() => {
@@ -32,7 +50,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="app-shell">
-      <header className="app-header">
+      <header className="app-header" ref={headerRef}>
         <button
           type="button"
           className="app-nav-toggle"
