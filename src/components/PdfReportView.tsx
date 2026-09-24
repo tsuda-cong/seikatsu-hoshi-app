@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 // 帳票をPDFとして表示する画面の共通部分。奉仕報告アプリと同じ動きにしている。
 //
@@ -20,6 +20,13 @@ export function PdfReportView({
   /** PDFを組み立てる。null のあいだは待つ(データの読み込み中など) */
   build: (() => Promise<Uint8Array>) | null
 }) {
+  // 帳票印刷以外の画面(週ごとのプログラムなど)から開いたときは、そこへ戻す。
+  // リンクに ?back=/ のように添えてある。アプリの中の行き先だけを受け取る
+  const [searchParams] = useSearchParams()
+  const requestedBack = searchParams.get('back')
+  const isInAppPath = !!requestedBack && requestedBack.startsWith('/') && !requestedBack.startsWith('//')
+  const backLink = isInAppPath ? requestedBack : backTo
+
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -50,7 +57,7 @@ export function PdfReportView({
   return (
     <div className="pdf-print-page">
       <div className="print-toolbar">
-        <Link to={backTo}>← 戻る</Link>
+        <Link to={backLink}>← 戻る</Link>
         {pdfUrl && (
           <a href={pdfUrl} download={fileName}>
             ダウンロード

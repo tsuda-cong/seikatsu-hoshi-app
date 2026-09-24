@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { fetchAllRows } from '../lib/fetchAll'
 import { useAppData } from '../context/AppDataContext'
@@ -17,6 +18,7 @@ import { todayString } from '../lib/localDate'
 import { buildTalkDatesInWeek } from '../lib/talkDates'
 import { hasSectionBand, sectionColor, sectionTextColor } from '../lib/printData'
 import { AssignmentCell } from '../components/AssignmentCell'
+import { DocumentIcon } from '../components/DocumentIcon'
 import { AutocompleteSelect } from '../components/AutocompleteSelect'
 import { WeekPager } from '../components/WeekPager'
 import type { Assignment, Member, Program, ProgramType, Song, TeachingPoint } from '../types/domain'
@@ -93,6 +95,12 @@ function currentWeekOf(dates: string[]): string | null {
 }
 
 const SELECTED_DATE_KEY = 'weeklyProgram.selectedDate'
+
+/** 表題の行から開ける帳票。key は帳票印刷と同じ道筋(/print/<key>/<期間>)の名前 */
+const REPORT_LINKS = [
+  { key: 'chairman', label: '司会' },
+  { key: 'counselor', label: '助言' },
+]
 
 /** 区分の見出しを出さない区分(1件だけで内容から自明なため) */
 const OPENING_SECTION = '開会'
@@ -805,7 +813,29 @@ export function WeeklyProgramPage() {
 
   return (
     <div className="page">
-      <h1>週ごとのプログラム</h1>
+      {/* 表題の行と日付の行は、スクロールしても画面の上に残す */}
+      <div className="week-sticky">
+      <div className="page-header">
+        <h1>週ごとのプログラム</h1>
+        {/* 今見ている週の帳票を、そのまま開く。帳票印刷と同じ画面・同じ出力になるよう、
+            期間をこの週だけにして同じ道筋を呼んでいる(別に組み立てない)。
+            back= を添えて、帳票の「← 戻る」でこの画面に帰ってこられるようにする */}
+        <div className="week-report-links">
+          {REPORT_LINKS.map((report) =>
+            selectedDate && sortedPrograms.length > 0 ? (
+              <Link key={report.key} to={`/print/${report.key}/${selectedDate}/${selectedDate}?back=%2F`}>
+                <DocumentIcon />
+                {report.label}
+              </Link>
+            ) : (
+              <span key={report.key} className="is-disabled">
+                <DocumentIcon />
+                {report.label}
+              </span>
+            ),
+          )}
+        </div>
+      </div>
 
       {/* 狭い画面では記号だけになる(「最初」などの語は date-nav-word がCSSで隠す) */}
       <div className="date-nav">
@@ -862,6 +892,7 @@ export function WeeklyProgramPage() {
             {manageMode ? '割当画面に戻る' : 'プログラムを編集'}
           </button>
         )}
+      </div>
       </div>
 
       {error && <p className="error-text">{error}</p>}

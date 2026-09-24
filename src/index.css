@@ -1480,6 +1480,18 @@ input {
 }
 
 @media (max-width: 700px) {
+  /* 表題とボタンを1行に収める(折り返すと固定部分が高くなり、表が見えなくなる) */
+  .week-sticky h1 {
+    font-size: 20px;
+    white-space: nowrap;
+  }
+
+  .week-report-links a,
+  .week-report-links span {
+    padding: 6px 9px;
+    font-size: 14px;
+  }
+
   .page {
     padding: 16px 12px 48px;
   }
@@ -2394,7 +2406,7 @@ input {
 /* 週ごとのプログラムの日付の操作欄・担当履歴の名前欄・講演日付の入力欄は、
    下までスクロールしても画面の上に残す。貼り付く位置は、位置固定のヘッダーのすぐ下。
    ヘッダーの高さは画面の幅で変わるので、Layout.tsx が実測して --app-header-h に入れている */
-.date-nav,
+.week-sticky,
 .history-picker,
 .talk-entry {
   position: sticky;
@@ -2403,12 +2415,21 @@ input {
 }
 
 /* 背景と上下の余白が無いと、スクロールした中身が固定部分の裏から透けて見える */
-.date-nav,
+.week-sticky,
 .history-picker {
   padding: 10px 0;
   margin-bottom: 0;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
+}
+
+/* 固定する部分を低く保つため、中の行の余白は詰める */
+.week-sticky .page-header {
+  margin-bottom: 10px;
+}
+
+.week-sticky .date-nav {
+  margin-bottom: 0;
 }
 
 .history-picker {
@@ -2423,9 +2444,47 @@ input {
 }
 
 /* 表の1行目が固定部分の下にもぐったまま始まらないよう、少しだけ間を空ける */
-.date-nav + .program-table,
-.date-nav + .error-text,
-.date-nav + .paste-import,
-.date-nav + .week-pager {
+.week-sticky + .program-table,
+.week-sticky + .error-text,
+.week-sticky + .paste-import,
+.week-sticky + .week-pager {
   margin-top: 14px;
+}
+
+/* ---- 表題の行から開く帳票のボタン ---- */
+
+.week-report-links {
+  display: flex;
+  gap: 8px;
+}
+
+.week-report-links a,
+.week-report-links span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-h);
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.week-report-links a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* 週が選ばれていない・その週のプログラムが無いときは押せない */
+.week-report-links span.is-disabled {
+  opacity: 0.4;
+}
+
+.document-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
