@@ -1089,6 +1089,12 @@ export function WeeklyProgramPage() {
 
               const memberPoolKey = programType ? (poolKeyByTypeId.get(programType.id) ?? programType.id) : null
 
+              // 参考に見せるプール(課題ありの実演など)。並び順には使わず、候補の行に添えるだけ
+              const referenceLabel = programType?.reference_pool ?? null
+              const referenceRecencyMap = referenceLabel
+                ? lastTeachingAssignmentAsMemberMapsByPool.get(referenceLabel)
+                : undefined
+
               const memberCandidates = programType
                 ? getEligibleCandidates({
                     members,
@@ -1107,6 +1113,7 @@ export function WeeklyProgramPage() {
                           ? lastTeachingAssignmentAsMemberMapsByPool.get(memberPoolKey)
                           : undefined,
                     talkDatesInWeek,
+                    referenceRecencyMap,
                   })
                 : []
 
@@ -1139,6 +1146,10 @@ export function WeeklyProgramPage() {
                       pairingMap: program.teaching_point_id ? pairingMap : undefined,
                       currentMemberId: program.teaching_point_id ? assignment?.member?.id : undefined,
                       talkDatesInWeek,
+                      // ペア側も同じプールを参考に出す(ペアとしての履歴だけを見る)
+                      referenceRecencyMap: partnerProgramType.reference_pool
+                        ? lastTeachingAssignmentAsPartnerMapsByPool.get(partnerProgramType.reference_pool)
+                        : undefined,
                     })
                   : []
 
@@ -1206,6 +1217,7 @@ export function WeeklyProgramPage() {
                         talkDateInWeek={
                           assignment?.member ? (talkDatesInWeek.get(assignment.member.id)?.[0] ?? null) : null
                         }
+                        referenceLabel={referenceLabel}
                         onAssign={(memberId) => upsertAssignment(program.id, { member_id: memberId })}
                       />
                     ) : (
@@ -1232,6 +1244,7 @@ export function WeeklyProgramPage() {
                         talkDateInWeek={
                           assignment?.partner ? (talkDatesInWeek.get(assignment.partner.id)?.[0] ?? null) : null
                         }
+                        referenceLabel={partnerProgramType?.reference_pool ?? null}
                         onAssign={(memberId) => upsertAssignment(program.id, { partner_id: memberId })}
                       />
                     )}

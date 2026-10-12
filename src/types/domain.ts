@@ -53,6 +53,17 @@ export interface ProgramType {
    * 空なら種別ごとに個別管理(他の種別とプールしない)。
    */
   recency_pool: string | null
+  /**
+   * 課題(教励課題)が無くても、終了時刻に1分を足す(司会者のコメントの分)。
+   * 課題の無い実演のように、助言ではないひと言が入る部分のためのもの
+   */
+  adds_comment_minute: boolean | null
+  /**
+   * 候補を選ぶときに、参考として「このプールでの担当日」も各候補の行に出す。
+   * 並び順や絞り込みには影響しない(表示だけ)。
+   * 例: 課題の無い実演に '実演' を入れると、課題ありの実演と日が近い人を避けられる
+   */
+  reference_pool: string | null
 }
 
 export interface Program {

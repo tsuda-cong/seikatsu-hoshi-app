@@ -12,6 +12,8 @@ interface ProgramTypeDraft {
   required_qualification: string
   partner_program_type_id: string
   recency_pool: string
+  adds_comment_minute: boolean
+  reference_pool: string
 }
 
 const EMPTY_DRAFT: ProgramTypeDraft = {
@@ -23,6 +25,8 @@ const EMPTY_DRAFT: ProgramTypeDraft = {
   required_qualification: '',
   partner_program_type_id: '',
   recency_pool: '',
+  adds_comment_minute: false,
+  reference_pool: '',
 }
 
 function draftFromType(pt: ProgramType): ProgramTypeDraft {
@@ -35,6 +39,8 @@ function draftFromType(pt: ProgramType): ProgramTypeDraft {
     required_qualification: pt.required_qualification ?? '',
     partner_program_type_id: pt.partner_program_type_id ?? '',
     recency_pool: pt.recency_pool ?? '',
+    adds_comment_minute: pt.adds_comment_minute ?? false,
+    reference_pool: pt.reference_pool ?? '',
   }
 }
 
@@ -48,6 +54,8 @@ function draftToPatch(d: ProgramTypeDraft) {
     required_qualification: d.required_qualification || null,
     partner_program_type_id: d.partner_program_type_id || null,
     recency_pool: d.recency_pool.trim() || null,
+    adds_comment_minute: d.adds_comment_minute,
+    reference_pool: d.reference_pool.trim() || null,
   }
 }
 
@@ -200,6 +208,23 @@ export function ProgramTypesPage() {
             onChange={(e) => setD((x) => ({ ...x, recency_pool: e.target.value }))}
           />
         </td>
+        <td>
+          <input
+            placeholder="例: 実演"
+            value={d.reference_pool}
+            onChange={(e) => setD((x) => ({ ...x, reference_pool: e.target.value }))}
+          />
+        </td>
+        <td>
+          <label>
+            <input
+              type="checkbox"
+              checked={d.adds_comment_minute}
+              onChange={(e) => setD((x) => ({ ...x, adds_comment_minute: e.target.checked }))}
+            />
+            足す
+          </label>
+        </td>
       </>
     )
   }
@@ -220,6 +245,8 @@ export function ProgramTypesPage() {
             <th>ペア</th>
             <th>ペアのルール参照元</th>
             <th>候補プール</th>
+            <th>参考に出すプール</th>
+            <th>コメントの1分</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -249,6 +276,8 @@ export function ProgramTypesPage() {
                 </td>
                 <td>{programTypes.find((p) => p.id === pt.partner_program_type_id)?.name ?? ''}</td>
                 <td>{pt.recency_pool ?? ''}</td>
+                <td>{pt.reference_pool ?? ''}</td>
+                <td>{pt.adds_comment_minute ? '足す' : ''}</td>
                 <td className="row-actions">
                   <button type="button" onClick={() => startEdit(pt)}>
                     編集

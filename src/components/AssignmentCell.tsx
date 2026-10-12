@@ -20,6 +20,8 @@ interface AssignmentCellProps {
   proximityTooltip?: string
   /** 割り当て済みの人が同じ週の週末に講演を担当する場合、その日付 */
   talkDateInWeek?: string | null
+  /** 候補一覧で参考に出す担当日の見出し(例: 実演) */
+  referenceLabel?: string | null
 }
 
 export function AssignmentCell({
@@ -35,6 +37,7 @@ export function AssignmentCell({
   proximityLabel,
   proximityTooltip,
   talkDateInWeek,
+  referenceLabel,
 }: AssignmentCellProps) {
   const [open, setOpen] = useState(false)
 
@@ -79,6 +82,7 @@ export function AssignmentCell({
         <CandidateCombobox
           candidates={candidates}
           referenceDate={referenceDate}
+          referenceLabel={referenceLabel}
           onClose={() => setOpen(false)}
           onSelect={(memberId) => {
             onAssign(memberId)

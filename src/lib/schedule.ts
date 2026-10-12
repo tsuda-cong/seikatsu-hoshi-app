@@ -14,18 +14,21 @@ export function formatClockTime(totalMinutes: number): string {
 export interface TimedItem {
   duration_minutes: number | null
   teaching_point_id: string | null
+  program_types?: { adds_comment_minute?: boolean | null } | null
 }
 
 /**
  * 開始時刻からの累積終了予定時刻(分)を項目ごとに返す。
  * 教励課題が設定されている項目は、助言者コメント用に1分を上乗せする。
+ * 課題が無くても司会者がひと言述べる部分(課題の無い実演など)は、
+ * 種別の「コメントの分を足す」で同じ1分を上乗せする。
  */
 export function computeEndTimesMinutes(startTimeStr: string, items: TimedItem[]): number[] {
   let cursor = parseTimeToMinutes(startTimeStr)
   const ends: number[] = []
   for (const item of items) {
     cursor += item.duration_minutes ?? 0
-    if (item.teaching_point_id) cursor += 1
+    if (item.teaching_point_id || item.program_types?.adds_comment_minute) cursor += 1
     ends.push(cursor)
   }
   return ends

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { Candidate } from '../lib/candidates'
-import { formatLastAssigned, memberDisplayName } from '../lib/candidates'
+import { formatLastAssigned, formatReferenceAssignment, memberDisplayName } from '../lib/candidates'
 import { formatTalkDate } from '../lib/talkDates'
 
 interface CandidateComboboxProps {
@@ -9,6 +9,8 @@ interface CandidateComboboxProps {
   onSelect: (memberId: string | null) => void
   onClose: () => void
   allowClear?: boolean
+  /** 参考に出す担当日の見出し(program_types.reference_pool の名前。例: 実演) */
+  referenceLabel?: string | null
 }
 
 /** 開会の祈りと閉会の祈りは一目で見分けられるよう色を変える */
@@ -28,6 +30,7 @@ export function CandidateCombobox({
   onSelect,
   onClose,
   allowClear = true,
+  referenceLabel,
 }: CandidateComboboxProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -67,6 +70,18 @@ export function CandidateCombobox({
               </span>
               <span className="candidate-meta">
                 {c.isDuplicateToday && <span className="candidate-warning">⚠ 本日他の担当あり</span>}
+                {/* 参考: 別のプール(例: 課題ありの実演)でこの人がいつ担当するか。
+                    日が近ければ色を変える。並び順は変えておらず、選ぶこともできる */}
+                {referenceLabel &&
+                  c.referenceAssignment &&
+                  (() => {
+                    const { text, near } = formatReferenceAssignment(
+                      c.referenceAssignment,
+                      referenceLabel,
+                      referenceDate,
+                    )
+                    return <span className={near ? 'candidate-warning' : 'candidate-reference'}>{near ? `⚠ ${text}` : text}</span>
+                  })()}
                 {/* 同じ週の週末に講演がある人。選ぶことはできる(注意喚起だけ) */}
                 {c.talkDateInWeek && (
                   <span className="candidate-warning">⚠ 週末に講演 {formatTalkDate(c.talkDateInWeek)}</span>

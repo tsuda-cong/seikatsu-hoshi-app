@@ -2488,3 +2488,10 @@ input {
   height: 16px;
   flex-shrink: 0;
 }
+
+/* 候補の行に添える、別プールでの担当日(参考)。日が近いときは candidate-warning の色になる */
+.candidate-reference {
+  display: block;
+  color: var(--text);
+  opacity: 0.85;
+}

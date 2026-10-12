@@ -236,6 +236,12 @@ export interface Candidate {
   previouslyPaired: boolean
   /** 同じ週(月曜〜日曜)の週末に講演の担当がある場合、その日付(選択は可能、注意喚起のみ) */
   talkDateInWeek: string | null
+  /**
+   * 参考として見せる別プールでの担当日(program_types.reference_pool)。
+   * 課題の無い実演を選ぶときに、課題ありの実演と日が近い人を避けるためのもの。
+   * 並び順には影響させない(表示だけ)
+   */
+  referenceAssignment: LastTeachingAssignment | null
 }
 
 interface GetCandidatesParams {
@@ -255,6 +261,8 @@ interface GetCandidatesParams {
   currentMemberId?: string | null
   /** memberId -> 同じ週にある講演の日付。除外はせず、注意喚起の表示にのみ使う */
   talkDatesInWeek?: Map<string, string[]>
+  /** 参考として各候補に見せる、別プールでの担当日。並び順には影響させない */
+  referenceRecencyMap?: LastTeachingAssignmentMap
 }
 
 /**
@@ -273,6 +281,7 @@ export function getEligibleCandidates({
   pairingMap,
   currentMemberId,
   talkDatesInWeek,
+  referenceRecencyMap,
 }: GetCandidatesParams): Candidate[] {
   const requiredPositions = programType.required_position ?? []
   const requiredQualification = programType.required_qualification
@@ -302,6 +311,7 @@ export function getEligibleCandidates({
       isDuplicateToday: duplicateMemberIds?.has(member.id) ?? false,
       previouslyPaired: currentRoundPaired.has(member.id),
       talkDateInWeek: talkDatesInWeek?.get(member.id)?.[0] ?? null,
+      referenceAssignment: referenceRecencyMap?.get(member.id) ?? null,
     }
   })
 
@@ -332,6 +342,30 @@ function memberSortKey(member: Member): string {
 
 export function memberDisplayName(member: Member): string {
   return `${member.last_name} ${member.first_name}${member.honorific}`
+}
+
+/** 参考に出す担当日が「近い」と見なす日数(前後2週間) */
+const REFERENCE_NEAR_DAYS = 14
+
+/**
+ * 参考として見せる別プールの担当日を「実演: 10/8(2週間後)」の形にする。
+ * 前後2週間以内なら near を立て、避けた方がよいことが目に入るようにする(選択は可能)
+ */
+export function formatReferenceAssignment(
+  assignment: LastTeachingAssignment,
+  label: string,
+  referenceDate: string,
+): { text: string; near: boolean } {
+  const diffDays = daysBetween(assignment.date, referenceDate)
+  const diffWeeks = Math.round(Math.abs(diffDays) / 7)
+  // 日付の形は他の行(前回/今後)と揃える。年が無いと、離れた日付が読み取れない
+  const date = new Date(assignment.date).toLocaleDateString('ja-JP', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  })
+  const when = diffWeeks === 0 ? '同じ週' : `${diffWeeks}週間${diffDays > 0 ? '後' : '前'}`
+  return { text: `${label}: ${date}(${when})`, near: Math.abs(diffDays) <= REFERENCE_NEAR_DAYS }
 }
 
 /**
