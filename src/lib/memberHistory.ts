@@ -156,26 +156,57 @@ export function buildTypeSummaries(
   return summaries
 }
 
+/** 目安を出すときに見る期間(年)。これより古い担当だけの人は、今の回り方の基準にならない */
+export const BASELINE_YEARS = 2
+
+export interface PoolBaseline {
+  /** 目安となるサイクル(日)。母数の中央値 */
+  days: number
+  /** 母数の人数。数字をどれだけの人から出したかが分かるように表示する */
+  memberCount: number
+}
+
+/** 数の並びの真ん中の値。偶数個なら中央2つの平均 */
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b)
+  const middle = sorted.length >> 1
+  return sorted.length % 2 === 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
+}
+
 /**
- * 候補プールごとに、そのプールを担当した現役の人の平均サイクル(日)を求める。
- * 一人ひとりの平均サイクルを出したうえで、その平均をとる。1回しか担当していない人は
- * サイクルが出せないので数に入らない。個人の値と同じ土俵で比べるための基準値。
- * 休止中の人と名簿にいない人は、今の回り方の基準にはならないので除く。
+ * 候補プールごとに、「今その種別がどのくらいの間隔で回っているか」の目安を求める。
+ * 個人の平均サイクルと同じ土俵で比べるための基準値。
+ *
+ * **直近BASELINE_YEARS年の担当だけ**を使い、その期間に2回以上担当した現役の人それぞれの
+ * サイクルを出して、その**中央値**(人数の真ん中にくる人の値)をとる。
+ *
+ * 以前は全期間・全員の平均をとっていたが、長老や援助奉仕者のように
+ * 「候補には入るが他のプログラムとの兼ね合いで数年に1回しか当たらない人」の
+ * サイクル(例: 聖書朗読で182週)が基準値を大きく押し上げ、
+ * ふだん回っている人が全員「全体より短い」と出ていた(実測: 聖書朗読の基準が39.3週。
+ * 実際に回っている13人は12〜21週)。期間で絞ると滅多に当たらない人は2回に満たず自然に外れ、
+ * 中央値にすることで残った少数の極端な値にも引きずられない。
  */
-export function buildPoolAverageCycles(
+export function buildPoolBaselines(
   rows: AssignmentHistoryRow[],
   role: AssignmentRole,
   programTypes: ProgramType[],
   members: Member[],
-): Map<string, number | null> {
+  today: string,
+): Map<string, PoolBaseline | null> {
   const poolKeyByTypeId = buildPoolKeyByTypeId(programTypes)
   const activeIds = new Set(members.filter((m) => m.status === '現役').map((m) => m.id))
+
+  // 直近何年かを「YYYY-MM-DD」で表す(この日より前の担当は数えない)
+  const since = new Date(today)
+  since.setFullYear(since.getFullYear() - BASELINE_YEARS)
+  const sinceDate = `${since.getFullYear()}-${String(since.getMonth() + 1).padStart(2, '0')}-${String(since.getDate()).padStart(2, '0')}`
 
   // プールキー -> 人id -> 担当日一覧
   const datesByPoolByMember = new Map<string, Map<string, string[]>>()
 
   for (const row of rows) {
-    if (!row.program_date) continue
+    if (!row.program_date || row.program_date < sinceDate) continue
     const memberId = role === 'member' ? row.member_id : row.partner_id
     if (!memberId || !activeIds.has(memberId)) continue
     const typeId =
@@ -193,7 +224,7 @@ export function buildPoolAverageCycles(
     else byMember.set(memberId, [row.program_date])
   }
 
-  const result = new Map<string, number | null>()
+  const result = new Map<string, PoolBaseline | null>()
   for (const [key, byMember] of datesByPoolByMember) {
     const cycles: number[] = []
     for (const raw of byMember.values()) {
@@ -203,7 +234,7 @@ export function buildPoolAverageCycles(
       dates.sort()
       cycles.push(daysBetween(dates[dates.length - 1], dates[0]) / (dates.length - 1))
     }
-    result.set(key, cycles.length > 0 ? cycles.reduce((a, b) => a + b, 0) / cycles.length : null)
+    result.set(key, cycles.length > 0 ? { days: median(cycles), memberCount: cycles.length } : null)
   }
   return result
 }
@@ -324,16 +355,16 @@ export function formatCycle(averageCycleDays: number | null): string {
 }
 
 /**
- * 全体平均との差。マイナスなら全体より短い間隔で回ってきている(=よく当たっている)。
+ * 全体の目安との差。マイナスなら目安より短い間隔で回ってきている(=よく当たっている)。
  * 差がごくわずかなときは、意味のある差ではないので出さない。
  */
 export function formatCycleDelta(
   averageCycleDays: number | null,
-  poolAverageDays: number | null | undefined,
+  baseline: PoolBaseline | null | undefined,
 ): { text: string; shorter: boolean } | null {
-  if (averageCycleDays === null || poolAverageDays === null || poolAverageDays === undefined) return null
-  const deltaWeeks = (averageCycleDays - poolAverageDays) / 7
+  if (averageCycleDays === null || !baseline) return null
+  const deltaWeeks = (averageCycleDays - baseline.days) / 7
   if (Math.abs(deltaWeeks) < 0.1) return null
   const shorter = deltaWeeks < 0
-  return { text: `全体より${Math.abs(deltaWeeks).toFixed(1)}週${shorter ? '短い' : '長い'}`, shorter }
+  return { text: `目安より${Math.abs(deltaWeeks).toFixed(1)}週${shorter ? '短い' : '長い'}`, shorter }
 }

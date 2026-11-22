@@ -7,7 +7,8 @@ import {
   buildMemberTimeline,
   buildNeverAssignedPools,
   buildPairSummaries,
-  buildPoolAverageCycles,
+  buildPoolBaselines,
+  BASELINE_YEARS,
   buildTypeSummaries,
   formatCycle,
   formatCycleDelta,
@@ -16,6 +17,7 @@ import {
   type AssignmentRole,
   type HistoryEntry,
   type PairSummary,
+  type PoolBaseline,
   type TypeSummary,
 } from '../lib/memberHistory'
 import type { Member } from '../types/domain'
@@ -79,11 +81,11 @@ export function MemberHistoryPage() {
   )
   // 全体平均は選んだ人に依らないので、名簿全体の履歴から一度だけ求める
   const poolAveragesAsMember = useMemo(
-    () => buildPoolAverageCycles(historyRows, 'member', programTypes, members),
+    () => buildPoolBaselines(historyRows, 'member', programTypes, members, today),
     [historyRows, programTypes, members],
   )
   const poolAveragesAsPartner = useMemo(
-    () => buildPoolAverageCycles(historyRows, 'partner', programTypes, members),
+    () => buildPoolBaselines(historyRows, 'partner', programTypes, members, today),
     [historyRows, programTypes, members],
   )
 
@@ -176,8 +178,10 @@ export function MemberHistoryPage() {
             <h2>種別ごと</h2>
             <p className="history-note">
               候補選択と同じまとめ方です(実演・話などは種別が分かれていても一つとして数えます)。
-              平均サイクルは担当日の間隔の平均で、2回以上ある場合のみ出ます。全体平均は、その種別を
-              担当した現役の人それぞれの平均サイクルをならしたものです。
+              平均サイクルは担当日の間隔の平均で、2回以上ある場合のみ出ます。全体の目安は、
+              直近{BASELINE_YEARS}年のあいだに2回以上担当した現役の人のうち、
+              ちょうど真ん中にくる人のサイクルです(括弧内はその人数)。
+              数年に1回しか担当しない人に引っ張られないよう、この求め方にしています。
             </p>
             <div className="history-two-col">
               <TypeSummaryTable
@@ -390,7 +394,7 @@ function TypeSummaryTable({
 }: {
   title: string
   summaries: TypeSummary[]
-  poolAverages: Map<string, number | null>
+  poolAverages: Map<string, PoolBaseline | null>
   today: string
 }) {
   return (
@@ -407,7 +411,7 @@ function TypeSummaryTable({
               <th>前回</th>
               <th>今後</th>
               <th className="history-num">平均サイクル</th>
-              <th className="history-num">全体平均</th>
+              <th className="history-num">全体の目安</th>
             </tr>
           </thead>
           <tbody>
@@ -438,8 +442,13 @@ function TypeSummaryTable({
                     })()}
                   </span>
                 </td>
-                <td data-label="全体平均" className="history-num history-cycle-pool">
-                  {formatCycle(poolAverages.get(s.key) ?? null)}
+                <td data-label="全体の目安" className="history-num history-cycle-pool">
+                  {(() => {
+                    const baseline = poolAverages.get(s.key)
+                    if (!baseline) return '―'
+                    // 何人から出した数字かが分かると、読み違えずに済む
+                    return `${formatCycle(baseline.days)}(${baseline.memberCount}人)`
+                  })()}
                 </td>
               </tr>
             ))}
