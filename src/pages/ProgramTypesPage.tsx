@@ -12,6 +12,8 @@ interface ProgramTypeDraft {
   required_qualification: string
   partner_program_type_id: string
   recency_pool: string
+  student_part: boolean
+  on_counselor_sheet: boolean
   adds_comment_minute: boolean
   reference_pool: string
 }
@@ -25,6 +27,8 @@ const EMPTY_DRAFT: ProgramTypeDraft = {
   required_qualification: '',
   partner_program_type_id: '',
   recency_pool: '',
+  student_part: false,
+  on_counselor_sheet: false,
   adds_comment_minute: false,
   reference_pool: '',
 }
@@ -39,6 +43,8 @@ function draftFromType(pt: ProgramType): ProgramTypeDraft {
     required_qualification: pt.required_qualification ?? '',
     partner_program_type_id: pt.partner_program_type_id ?? '',
     recency_pool: pt.recency_pool ?? '',
+    student_part: pt.student_part ?? false,
+    on_counselor_sheet: pt.on_counselor_sheet ?? false,
     adds_comment_minute: pt.adds_comment_minute ?? false,
     reference_pool: pt.reference_pool ?? '',
   }
@@ -54,6 +60,8 @@ function draftToPatch(d: ProgramTypeDraft) {
     required_qualification: d.required_qualification || null,
     partner_program_type_id: d.partner_program_type_id || null,
     recency_pool: d.recency_pool.trim() || null,
+    student_part: d.student_part,
+    on_counselor_sheet: d.on_counselor_sheet,
     adds_comment_minute: d.adds_comment_minute,
     reference_pool: d.reference_pool.trim() || null,
   }
@@ -219,6 +227,26 @@ export function ProgramTypesPage() {
           <label>
             <input
               type="checkbox"
+              checked={d.student_part}
+              onChange={(e) => setD((x) => ({ ...x, student_part: e.target.checked }))}
+            />
+            扱う
+          </label>
+        </td>
+        <td>
+          <label>
+            <input
+              type="checkbox"
+              checked={d.on_counselor_sheet}
+              onChange={(e) => setD((x) => ({ ...x, on_counselor_sheet: e.target.checked }))}
+            />
+            載せる
+          </label>
+        </td>
+        <td>
+          <label>
+            <input
+              type="checkbox"
               checked={d.adds_comment_minute}
               onChange={(e) => setD((x) => ({ ...x, adds_comment_minute: e.target.checked }))}
             />
@@ -246,6 +274,8 @@ export function ProgramTypesPage() {
             <th>ペアのルール参照元</th>
             <th>候補プール</th>
             <th>参考に出すプール</th>
+            <th>学生の割り当て</th>
+            <th>助言者用紙</th>
             <th>コメントの1分</th>
             <th>操作</th>
           </tr>
@@ -277,6 +307,8 @@ export function ProgramTypesPage() {
                 <td>{programTypes.find((p) => p.id === pt.partner_program_type_id)?.name ?? ''}</td>
                 <td>{pt.recency_pool ?? ''}</td>
                 <td>{pt.reference_pool ?? ''}</td>
+                <td>{pt.student_part ? '扱う' : ''}</td>
+                <td>{pt.on_counselor_sheet ? '載せる' : ''}</td>
                 <td>{pt.adds_comment_minute ? '足す' : ''}</td>
                 <td className="row-actions">
                   <button type="button" onClick={() => startEdit(pt)}>

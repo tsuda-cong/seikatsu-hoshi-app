@@ -201,7 +201,7 @@ export function MemberHistoryPage() {
 
           <section className="history-section">
             <h2>ペアの履歴</h2>
-            <p className="history-note">課題付き(実演形式)のプログラムのみ。担当者側とペア側は分けて数えます。</p>
+            <p className="history-note">学生の割り当て(課題付きの実演形式と、課題の無い実演)のみ。担当者側とペア側は分けて数えます。</p>
             <div className="history-two-col">
               <PairTable
                 title="担当者として組んだ相手"

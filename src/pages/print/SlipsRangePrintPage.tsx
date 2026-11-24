@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { useAppData } from '../../context/AppDataContext'
 import { PrintToolbar } from '../../components/PrintToolbar'
 import { SlipCard } from '../../components/SlipCard'
+import { isStudentPart } from '../../lib/printData'
 import type { Assignment, Member, Program, ProgramType } from '../../types/domain'
 
 type ProgramWithType = Program & { program_types: ProgramType | null }
@@ -31,14 +32,16 @@ export function SlipsRangePrintPage() {
           .select('*, program_types(*)')
           .gte('date', from)
           .lte('date', to)
-          .not('teaching_point_id', 'is', null)
           .order('date', { ascending: true })
           .order('order_no', { ascending: true })
           .returns<ProgramWithType[]>()
         if (programError) throw programError
-        setPrograms(programData ?? [])
+        // 学生の割り当てだけを残す。種別の印も見るため、絞り込みは取得後に行う
+        // (課題番号の有無だけならSQL側で絞れるが、印は別のテーブルの列のため)
+        const studentPrograms = (programData ?? []).filter(isStudentPart)
+        setPrograms(studentPrograms)
 
-        const programIds = (programData ?? []).map((p) => p.id)
+        const programIds = studentPrograms.map((p) => p.id)
         if (programIds.length === 0) {
           setAssignments([])
           return

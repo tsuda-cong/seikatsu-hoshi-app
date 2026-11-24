@@ -7,8 +7,11 @@ export interface AssignmentHistoryRow {
   program_type_id: string | null
   /** ペアが主担当と異なる資格ルール(例: 会衆の聖書研究の朗読者)で入る場合の種別id */
   partner_program_type_id: string | null
-  /** その回のプログラムに課題(教励課題)が設定されていたか */
-  has_teaching_point: boolean
+  /**
+   * その回が学生の割り当てだったか。課題(教励課題)が設定されていたか、
+   * または種別に「学生の割り当て」の印が付いていたか(課題の無い実演など)
+   */
+  is_student_part: boolean
   /** その回の課題(教励課題)のid(担当履歴の表示用) */
   teaching_point_id: string | null
   /** そのプログラムの種別名(表示用) */
@@ -179,15 +182,15 @@ export function buildLastTeachingAssignmentMapsByPool(
 export type PairingMap = Map<string, string[]>
 
 /**
- * 教励課題付き(実演系)プログラムでのペア実績のみを対象にする。会衆の聖書研究の
- * 担当者/朗読者のような、実演ではないペアはここに含めない。
+ * 学生の割り当て(課題付きの実演系と、課題の無い実演)でのペア実績のみを対象にする。
+ * 会衆の聖書研究の担当者/朗読者のような、実演ではないペアはここに含めない。
  * referenceDate より後(まだ先の話)のペア実績は、今組んでいる週の判断材料にはならないため含めない。
  */
 export function buildPairingMap(rows: AssignmentHistoryRow[], referenceDate: string): PairingMap {
   const sorted = rows
     .filter(
       (r): r is AssignmentHistoryRow & { program_date: string; member_id: string; partner_id: string } =>
-        Boolean(r.has_teaching_point && r.program_date && r.member_id && r.partner_id && r.program_date <= referenceDate),
+        Boolean(r.is_student_part && r.program_date && r.member_id && r.partner_id && r.program_date <= referenceDate),
     )
     .sort((a, b) => (a.program_date < b.program_date ? -1 : a.program_date > b.program_date ? 1 : 0))
 

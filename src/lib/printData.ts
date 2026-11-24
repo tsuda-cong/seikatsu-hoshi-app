@@ -3,6 +3,27 @@ import { fetchAllRows } from './fetchAll'
 import type { Assignment, Member, Program, ProgramType } from '../types/domain'
 
 export type ProgramWithType = Program & { program_types: ProgramType | null }
+
+/**
+ * 学生の割り当てとして扱うかどうか。割当予定表とスリップに載せる対象で、
+ * その分だけ集会予定表からは外れる。
+ * 課題番号があるもののほか、種別に「学生の割り当て」の印が付いたもの
+ * (課題の無い実演など)も含める。助言者用紙に載るかどうかは別の軸
+ */
+export function isStudentPart(item: ProgramWithType): boolean {
+  return !!item.teaching_point_id || !!item.program_types?.student_part
+}
+
+/**
+ * 助言者用紙に載せるかどうか。課題番号があるもののほか、
+ * 種別に「助言者用紙に載せる」の印が付いたものも含める。
+ * 3．聖書朗読から「伝道を楽しもう」の間は助言者用紙を見ながら進行するので、
+ * その間に課題の無いプログラムがあっても、用紙を行き来せずに済むようにするためのもの
+ */
+export function isOnCounselorSheet(item: ProgramWithType): boolean {
+  return !!item.teaching_point_id || !!item.program_types?.on_counselor_sheet
+}
+
 export type AssignmentWithRelations = Assignment & {
   member: Member | null
   partner: Member | null

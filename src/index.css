@@ -2495,3 +2495,15 @@ input {
   color: var(--text);
   opacity: 0.85;
 }
+
+/* 表の見出しも、スクロールしても残す(横に長い表で、どの列か分からなくなるため)。
+   貼り付く位置は他と同じくヘッダーのすぐ下 */
+.crud-table thead th {
+  position: sticky;
+  top: var(--app-header-h, 56px);
+  z-index: 5;
+  /* 半透明の色をそのまま使うと中身が透けるので、下地の上に重ねて不透明にする。
+     枠線は sticky だと一緒に動かないため、影で線を引く */
+  background: linear-gradient(var(--accent-bg), var(--accent-bg)), var(--surface);
+  box-shadow: 0 1px 0 var(--border);
+}

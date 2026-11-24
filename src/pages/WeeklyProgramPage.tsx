@@ -1089,6 +1089,10 @@ export function WeeklyProgramPage() {
 
               const memberPoolKey = programType ? (poolKeyByTypeId.get(programType.id) ?? programType.id) : null
 
+              // ペアの一巡(同じ相手と続けて組まない仕組み)を数える対象かどうか。
+              // 課題のあるものと、種別に「学生の割り当て」の印が付いたもの(課題の無い実演)
+              const countsForPairing = !!program.teaching_point_id || !!programType?.student_part
+
               // 参考に見せるプール(課題ありの実演など)。並び順には使わず、候補の行に添えるだけ
               const referenceLabel = programType?.reference_pool ?? null
               const referenceRecencyMap = referenceLabel
@@ -1143,8 +1147,8 @@ export function WeeklyProgramPage() {
                           ? lastTeachingAssignmentAsPartnerMapsByPool.get(partnerPoolKey)
                           : undefined,
                       // 課題付きプログラムのペアは、主担当と一巡するまでの間に既にペアだった人を優先度下げ(除外はしない)
-                      pairingMap: program.teaching_point_id ? pairingMap : undefined,
-                      currentMemberId: program.teaching_point_id ? assignment?.member?.id : undefined,
+                      pairingMap: countsForPairing ? pairingMap : undefined,
+                      currentMemberId: countsForPairing ? assignment?.member?.id : undefined,
                       talkDatesInWeek,
                       // ペア側も同じプールを参考に出す(ペアとしての履歴だけを見る)
                       referenceRecencyMap: partnerProgramType.reference_pool

@@ -2,6 +2,8 @@ import { memberDisplayName } from '../candidates'
 import { computeEndTimesMinutes, formatClockTime } from '../schedule'
 import {
   findChairmanName,
+  isOnCounselorSheet,
+  isStudentPart,
   formatDateHeading,
   formatPrintedDate,
   hasSectionBand,
@@ -74,8 +76,10 @@ export function toCounselorModel(
       const endMinutes = computeEndTimesMinutes(meetingStartTime, all)
       const items = all
         .map((item, i) => ({ item, endMinute: endMinutes[i] }))
-        // 課題(教励課題)のあるプログラムだけ。無い週はページごと出さない
-        .filter(({ item }) => item.teaching_point_id)
+        // 課題(教励課題)のあるプログラムと、種別に「助言者用紙に載せる」の印が付いたもの。
+        // 1件も無い週はページごと出さない。割当予定表とは判定が別(isStudentPartではない)で、
+        // 例えば教えて育てる(話)は集会予定表側に残したまま、ここには載せる
+        .filter(({ item }) => isOnCounselorSheet(item))
       if (items.length === 0) return []
       return [
         {
@@ -125,8 +129,9 @@ export function toScheduleModel(
         chairman: chairman ? `司会者: ${chairman}` : '',
         rows: all
           .map((item, i) => ({ item, endMinute: endMinutes[i] }))
-          // 課題(教励課題)のある行は割当予定表に載せるので、ここでは除く
-          .filter(({ item }) => !item.teaching_point_id)
+          // 学生の割り当て(課題のある行と、種別に印の付いた課題なしの実演)は
+          // 割当予定表に載せるので、ここでは除く
+          .filter(({ item }) => !isStudentPart(item))
           .map(({ item, endMinute }) => {
             const assignment = data.assignmentByProgramId.get(item.id)
             const song = item.song_id ? songs.find((s) => s.id === item.song_id) : undefined
@@ -161,8 +166,8 @@ export function toAssignmentsModel(
     printedDate: formatPrintedDate(),
     weeks: data.dates.flatMap((date) => {
       const all = data.programsByDate.get(date) ?? []
-      // 課題(教励課題)のあるプログラムだけを載せる
-      const items = all.filter((item) => item.teaching_point_id)
+      // 学生の割り当てだけを載せる(課題が無くても、種別に印が付いていれば載せる)
+      const items = all.filter((item) => isStudentPart(item))
       if (items.length === 0) return []
       const counselor = findChairmanName(all, data.assignmentByProgramId, programTypes)
       return [

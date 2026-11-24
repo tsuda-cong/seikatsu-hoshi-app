@@ -60,7 +60,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       supabase
         .from('assignments')
         .select(
-          'member_id, partner_id, programs(date, title, section, program_type_id, teaching_point_id, program_types(name, partner_program_type_id))',
+          'member_id, partner_id, programs(date, title, section, program_type_id, teaching_point_id, program_types(name, partner_program_type_id, student_part))',
         )
         .order('id', { ascending: true }),
     )
@@ -78,7 +78,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         program_date: program?.date ?? null,
         program_type_id: program?.program_type_id ?? null,
         partner_program_type_id: programType?.partner_program_type_id ?? null,
-        has_teaching_point: !!program?.teaching_point_id,
+        is_student_part: !!program?.teaching_point_id || !!programType?.student_part,
         teaching_point_id: program?.teaching_point_id ?? null,
         program_type_name: programType?.name ?? null,
         program_title: program?.title ?? null,

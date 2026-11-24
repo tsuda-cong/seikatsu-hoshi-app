@@ -16,7 +16,8 @@ export interface HistoryEntry {
   /** 担当者だった回はペア、ペアだった回は担当者 */
   counterpartId: string | null
   teachingPointId: string | null
-  hasTeachingPoint: boolean
+  /** 学生の割り当てだったか(ペアの数え方に使う) */
+  isStudentPart: boolean
 }
 
 function daysBetween(a: string, b: string): number {
@@ -52,7 +53,7 @@ export function buildMemberTimeline(rows: AssignmentHistoryRow[], memberId: stri
         role: 'member',
         counterpartId: null,
         teachingPointId: null,
-        hasTeachingPoint: false,
+        isStudentPart: false,
       })
       continue
     }
@@ -66,7 +67,7 @@ export function buildMemberTimeline(rows: AssignmentHistoryRow[], memberId: stri
       role: isMember ? 'member' : 'partner',
       counterpartId: isMember ? row.partner_id : row.member_id,
       teachingPointId: row.teaching_point_id,
-      hasTeachingPoint: row.has_teaching_point,
+      isStudentPart: row.is_student_part,
     })
   }
 
@@ -314,7 +315,7 @@ export function buildPairSummaries(entries: HistoryEntry[], role: AssignmentRole
   const byCounterpart = new Map<string, { count: number; lastDate: string }>()
 
   for (const e of entries) {
-    if (e.role !== role || !e.hasTeachingPoint || !e.counterpartId) continue
+    if (e.role !== role || !e.isStudentPart || !e.counterpartId) continue
     const existing = byCounterpart.get(e.counterpartId)
     if (existing) {
       existing.count += 1
