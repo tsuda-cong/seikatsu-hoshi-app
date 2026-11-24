@@ -2507,3 +2507,27 @@ input {
   background: linear-gradient(var(--accent-bg), var(--accent-bg)), var(--surface);
   box-shadow: 0 1px 0 var(--border);
 }
+
+/* ◯×のチェックだけの列。見出しが折り返さない幅に詰めて、表全体を狭くする */
+.crud-table th.crud-flag,
+.crud-table td.crud-flag {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.crud-table td.crud-flag input {
+  width: auto;
+}
+
+/* 種別の名称は、折り返すと読み取りにくいので幅を確保する
+   (立場の列が広がりすぎて、名称が1文字ずつ折り返していた) */
+.crud-table th:first-child,
+.crud-table td:first-child {
+  min-width: 11em;
+}
+
+/* 列の多い管理用の表だけ、画面を広く使う(狭い画面では .page の指定どおり) */
+.page.page-wide {
+  max-width: 1400px;
+}

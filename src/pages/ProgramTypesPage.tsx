@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
+import { RowActionsMenu } from '../components/RowActionsMenu'
 import { GENDERS, POSITIONS, QUALIFICATIONS, type Position, type ProgramType } from '../types/domain'
 
 interface ProgramTypeDraft {
@@ -223,43 +224,43 @@ export function ProgramTypesPage() {
             onChange={(e) => setD((x) => ({ ...x, reference_pool: e.target.value }))}
           />
         </td>
-        <td>
-          <label>
-            <input
-              type="checkbox"
-              checked={d.student_part}
-              onChange={(e) => setD((x) => ({ ...x, student_part: e.target.checked }))}
-            />
-            扱う
-          </label>
+        <td className="crud-flag">
+          <input
+            type="checkbox"
+            aria-label="学生の割り当てとして扱う"
+            checked={d.student_part}
+            onChange={(e) => setD((x) => ({ ...x, student_part: e.target.checked }))}
+          />
         </td>
-        <td>
-          <label>
-            <input
-              type="checkbox"
-              checked={d.on_counselor_sheet}
-              onChange={(e) => setD((x) => ({ ...x, on_counselor_sheet: e.target.checked }))}
-            />
-            載せる
-          </label>
+        <td className="crud-flag">
+          <input
+            type="checkbox"
+            aria-label="助言者用紙に載せる"
+            checked={d.on_counselor_sheet}
+            onChange={(e) => setD((x) => ({ ...x, on_counselor_sheet: e.target.checked }))}
+          />
         </td>
-        <td>
-          <label>
-            <input
-              type="checkbox"
-              checked={d.adds_comment_minute}
-              onChange={(e) => setD((x) => ({ ...x, adds_comment_minute: e.target.checked }))}
-            />
-            足す
-          </label>
+        <td className="crud-flag">
+          <input
+            type="checkbox"
+            aria-label="コメントの1分を足す"
+            checked={d.adds_comment_minute}
+            onChange={(e) => setD((x) => ({ ...x, adds_comment_minute: e.target.checked }))}
+          />
         </td>
       </>
     )
   }
 
+  // 列が多い表なので、この画面だけ少し広く使う(page-wide)
   return (
-    <div className="page">
+    <div className="page page-wide">
       <h1>プログラム種別</h1>
+      <p className="reports-hint">
+        「学生」=割当予定表とスリップに載せる(集会予定表からは外れます)。「助言者」=助言者用紙に載せる。
+        「+1分」=終了時刻に司会者のコメントの分を足す。課題番号のあるプログラムは、
+        チェックが無くても3つとも自動で当てはまります。
+      </p>
       {error && <p className="error-text">{error}</p>}
       {/* 狭い画面では表を組み替えず、横スクロールで見てもらう */}
       <div className="crud-table-scroll">
@@ -267,16 +268,16 @@ export function ProgramTypesPage() {
         <thead>
           <tr>
             <th>名称</th>
-            <th>必要な立場</th>
-            <th>必要な性別</th>
-            <th>必要な特別承認</th>
+            <th>立場</th>
+            <th>性別</th>
+            <th>特別承認</th>
             <th>ペア</th>
-            <th>ペアのルール参照元</th>
+            <th>ペア参照元</th>
             <th>候補プール</th>
-            <th>参考に出すプール</th>
-            <th>学生の割り当て</th>
-            <th>助言者用紙</th>
-            <th>コメントの1分</th>
+            <th>参考プール</th>
+            <th className="crud-flag">学生</th>
+            <th className="crud-flag">助言者</th>
+            <th className="crud-flag">+1分</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -307,16 +308,11 @@ export function ProgramTypesPage() {
                 <td>{programTypes.find((p) => p.id === pt.partner_program_type_id)?.name ?? ''}</td>
                 <td>{pt.recency_pool ?? ''}</td>
                 <td>{pt.reference_pool ?? ''}</td>
-                <td>{pt.student_part ? '扱う' : ''}</td>
-                <td>{pt.on_counselor_sheet ? '載せる' : ''}</td>
-                <td>{pt.adds_comment_minute ? '足す' : ''}</td>
+                <td className="crud-flag">{pt.student_part ? '◯' : ''}</td>
+                <td className="crud-flag">{pt.on_counselor_sheet ? '◯' : ''}</td>
+                <td className="crud-flag">{pt.adds_comment_minute ? '◯' : ''}</td>
                 <td className="row-actions">
-                  <button type="button" onClick={() => startEdit(pt)}>
-                    編集
-                  </button>
-                  <button type="button" onClick={() => handleDelete(pt)}>
-                    削除
-                  </button>
+                  <RowActionsMenu onEdit={() => startEdit(pt)} onDelete={() => handleDelete(pt)} />
                 </td>
               </tr>
             ),
