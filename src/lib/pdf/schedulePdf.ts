@@ -92,8 +92,11 @@ const FIRST_WEEK_TOP = 48.75
 const WEEK_HEIGHT = 15.79
 const WEEK_BASELINE = 11.25
 const WEEK_TEXT_SIZE = px(11)
+/** 行の高さの下限(PCで出していた頃の実測値)。1ページに収まるときは、余った分だけここから広げる */
 const ROW_HEIGHT = 13.35
 const ROW_BASELINE = 9.7
+/** 広げるときの上限。週数が少ないときに間延びしすぎないように(割当予定表と同じ) */
+const MAX_ROW_HEIGHT = 18
 /** 週と週のあいだ(5px) */
 const WEEK_GAP = px(5)
 
@@ -131,12 +134,14 @@ function layoutRow(font: PDFFont, row: ScheduleRow): LaidOutRow {
   }
 }
 
-function drawRow(page: PDFPage, font: PDFFont, laid: LaidOutRow, top: number, striped: boolean) {
-  const { row, height } = laid
+function drawRow(page: PDFPage, font: PDFFont, laid: LaidOutRow, top: number, striped: boolean, stretch: number) {
+  const { row } = laid
+  const height = laid.height + stretch
   if (striped) fillRect(page, CONTENT_LEFT, top, CONTENT_WIDTH, height, STRIPE)
   if (row.sectionColor) fillRect(page, CONTENT_LEFT, top, BAND_WIDTH, height, hex(row.sectionColor))
 
-  const base = top + ROW_BASELINE
+  // 広げた分の半分だけ下げて、文字が行の中で縦の中心に来るようにする
+  const base = top + ROW_BASELINE + stretch / 2
   const at = (n: number) => base + n * LINE_STEP
   const text = { size: TEXT_SIZE, color: BLACK }
 
@@ -202,10 +207,24 @@ export async function buildSchedulePdf(model: ScheduleModel, fontBytes: ArrayBuf
     width: CONTENT_WIDTH,
   })
 
+  // 先に全部の行の折り返しを決めてしまう(折り返しは行の高さに左右されない)。
+  // そのうえで、1ページに収まるなら余った高さを行数で割って均等に広げ、紙の下まで使う。
+  // 収まらないときは下限の高さのままページを分ける(割当予定表と同じ考え方)
+  const laidWeeks = model.weeks.map((week) => ({ week, rows: week.rows.map((row) => layoutRow(font, row)) }))
+  const rowCount = laidWeeks.reduce((sum, w) => sum + w.rows.length, 0)
+  const naturalHeight = laidWeeks.reduce(
+    (sum, w) => sum + WEEK_HEIGHT + WEEK_GAP + w.rows.reduce((s, r) => s + r.height, 0),
+    0,
+  )
+  const onePageHeight = CONTENT_BOTTOM - FIRST_WEEK_TOP
+  const stretch =
+    rowCount > 0 && naturalHeight <= onePageHeight
+      ? Math.min((onePageHeight - naturalHeight) / rowCount, MAX_ROW_HEIGHT - ROW_HEIGHT)
+      : 0
+
   let y = FIRST_WEEK_TOP
-  for (const week of model.weeks) {
-    const rows = week.rows.map((row) => layoutRow(font, row))
-    const weekHeight = WEEK_HEIGHT + rows.reduce((sum, r) => sum + r.height, 0)
+  for (const { week, rows } of laidWeeks) {
+    const weekHeight = WEEK_HEIGHT + rows.reduce((sum, r) => sum + r.height + stretch, 0)
 
     // 週の途中でページを分けない(以前の表示の break-inside: avoid と同じ)
     if (y + weekHeight > CONTENT_BOTTOM && y > FIRST_WEEK_TOP) {
@@ -230,8 +249,8 @@ export async function buildSchedulePdf(model: ScheduleModel, fontBytes: ArrayBuf
 
     // 縞は週ごとに数え直す。週の1行目から縞を敷く(以前の表示と同じ)
     rows.forEach((laid, i) => {
-      drawRow(page, font, laid, y, i % 2 === 0)
-      y += laid.height
+      drawRow(page, font, laid, y, i % 2 === 0, stretch)
+      y += laid.height + stretch
     })
     y += WEEK_GAP
   }

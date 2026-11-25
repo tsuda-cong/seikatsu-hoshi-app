@@ -68,8 +68,13 @@ const HEADER_BASELINE = 9.0
 const HEADER_SIZE = px(10)
 const WEEK_HEIGHT = 14.25
 const WEEK_BASELINE = 10.4
+/** 行の高さの下限(PCで出していた頃の実測値)。1ページに収まるときは、余った分だけここから広げる */
 const ROW_HEIGHT = 12.75
 const ROW_BASELINE = 9.8
+/** 広げるときの上限。週数が少ないときに間延びしすぎないように */
+const MAX_ROW_HEIGHT = 18
+/** 表のすぐ下に出力日を置くので、その分を残しておく(ここを使い切ると出力日だけ次のページに行く) */
+const DATE_SPACE = px(8) + 9.4 + px(4)
 const TEXT_SIZE = 9
 /** 折り返したときの2行目以降の送り(9pt × 行の高さ1.15) */
 const LINE_STEP = TEXT_SIZE * 1.15
@@ -102,6 +107,35 @@ export async function buildAssignmentsPdf(model: AssignmentsModel, fontBytes: Ar
   const pdf = await createPdf(fontBytes)
   let page = addA4Page(pdf)
 
+  // 先に全部の行の折り返しを決めてしまう(折り返しは行の高さに左右されない)。
+  // そのうえで、1ページに収まるなら余った高さを行数で割って均等に広げ、紙の下まで使う。
+  // 収まらないときは下限の高さのままページを分ける
+  const laidWeeks = model.weeks
+    .filter((week) => week.rows.length > 0)
+    .map((week) => ({
+      week,
+      rows: week.rows.map((row) => {
+        const cells = [row.title, row.duration, row.point, row.student, row.partner].map((text, i) =>
+          fitText(pdf.font, text, TEXT_SIZE, columnWidth[i] - CELL_PADDING * 2),
+        )
+        return { cells, extraLines: Math.max(...cells.map((c) => c.lines.length)) - 1 }
+      }),
+    }))
+
+  const rowCount = laidWeeks.reduce((sum, w) => sum + w.rows.length, 0)
+  const naturalHeight = laidWeeks.reduce(
+    (sum, w) => sum + WEEK_HEIGHT + w.rows.reduce((s, r) => s + ROW_HEIGHT + r.extraLines * LINE_STEP, 0),
+    0,
+  )
+  const onePageHeight = BOTTOM - (TABLE_TOP + HEADER_HEIGHT) - DATE_SPACE
+  const stretch =
+    rowCount > 0 && naturalHeight <= onePageHeight
+      ? Math.min((onePageHeight - naturalHeight) / rowCount, MAX_ROW_HEIGHT - ROW_HEIGHT)
+      : 0
+  const rowHeight = ROW_HEIGHT + stretch
+  // 文字は行の中で縦の中心に来るよう、広げた分の半分だけ下げる
+  const rowBaseline = ROW_BASELINE + stretch / 2
+
   drawText(page, pdf.font, TITLE, LEFT, TITLE_BASELINE, { size: TITLE_SIZE, color: PURPLE, weight: 'semibold' })
   let y = drawHeaderRow(page, pdf, TABLE_TOP)
 
@@ -114,11 +148,9 @@ export async function buildAssignmentsPdf(model: AssignmentsModel, fontBytes: Ar
 
   // 縞は週をまたいで1行おきに数え続ける
   let rowIndex = 0
-  for (const week of model.weeks) {
-    if (week.rows.length === 0) continue
-
+  for (const { week, rows } of laidWeeks) {
     // 週の帯だけがページの最下部に取り残されないよう、1行目と一緒に入るか確かめる
-    ensureRoom(WEEK_HEIGHT + ROW_HEIGHT)
+    ensureRoom(WEEK_HEIGHT + rowHeight)
     fillRect(page, LEFT, y, CONTENT_WIDTH, WEEK_HEIGHT, PURPLE)
     drawText(page, pdf.font, week.heading, LEFT + CELL_PADDING, y + WEEK_BASELINE, {
       size: TEXT_SIZE,
@@ -135,17 +167,14 @@ export async function buildAssignmentsPdf(model: AssignmentsModel, fontBytes: Ar
     })
     y += WEEK_HEIGHT
 
-    for (const row of week.rows) {
-      const cells = [row.title, row.duration, row.point, row.student, row.partner]
-      const fitted = cells.map((text, i) => fitText(pdf.font, text, TEXT_SIZE, columnWidth[i] - CELL_PADDING * 2))
-      const lineCount = Math.max(...fitted.map((f) => f.lines.length))
-      const height = ROW_HEIGHT + (lineCount - 1) * LINE_STEP
+    for (const { cells: fitted, extraLines } of rows) {
+      const height = rowHeight + extraLines * LINE_STEP
 
       ensureRoom(height)
       if (rowIndex % 2 === 1) fillRect(page, LEFT, y, CONTENT_WIDTH, height, STRIPE)
       fitted.forEach((cell, i) => {
         cell.lines.forEach((line, n) => {
-          drawText(page, pdf.font, line, columnX[i] + CELL_PADDING, y + ROW_BASELINE + n * LINE_STEP, {
+          drawText(page, pdf.font, line, columnX[i] + CELL_PADDING, y + rowBaseline + n * LINE_STEP, {
             size: TEXT_SIZE,
             color: BLACK,
             squeeze: cell.squeeze,
