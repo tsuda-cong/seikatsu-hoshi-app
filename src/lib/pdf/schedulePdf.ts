@@ -74,8 +74,9 @@ const COLUMN_GAP = px(6)
 // 担当者の列は、ペア(朗読者)を下の行に重ねて入れるので、9ptで一番長い名前に括弧が付いた形
 // (「(五百旗頭 真次兄弟)」)が折り返さない幅。
 // ペアを使うのは会衆の聖書研究の1行だけで、そのために1列まるごと空けておくと
-// 題名と資料が窮屈になるため、縦に並べてその分を題名・資料に回している
-const [SONG_W, DURATION_W, END_W, MATERIAL_W, PRESENTER_W] = [34, 34, 48, 166, 108].map(px)
+// 題名と資料が窮屈になるため、縦に並べてその分を題名・資料に回している。
+// 資料は題名とほぼ同じ幅にしてある(ユーザーが見本を見比べて決めた配分。資料の折り返しが減る)
+const [SONG_W, DURATION_W, END_W, MATERIAL_W, PRESENTER_W] = [34, 34, 48, 235, 108].map(px)
 const TITLE_W =
   INNER_RIGHT - INNER_LEFT - (SONG_W + DURATION_W + END_W + MATERIAL_W + PRESENTER_W) - COLUMN_GAP * 5
 const SONG_X = INNER_LEFT + TITLE_W + COLUMN_GAP
