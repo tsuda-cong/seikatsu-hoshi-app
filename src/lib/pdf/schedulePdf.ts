@@ -70,17 +70,19 @@ const BAND_WIDTH = px(8)
 const INNER_LEFT = CONTENT_LEFT + BAND_WIDTH + px(8)
 const INNER_RIGHT = CONTENT_RIGHT - px(8)
 const COLUMN_GAP = px(6)
-// 歌・時間・終了時刻・資料・担当者・ペアの幅。担当者とペアは、9ptで一番長い名前
-// (「(五百旗頭 真次兄弟)」)が折り返さない幅。題名の列は残りを受け取る
-const [SONG_W, DURATION_W, END_W, MATERIAL_W, PRESENTER_W, PARTNER_W] = [34, 34, 48, 116, 100, 108].map(px)
+// 歌・時間・終了時刻・資料・担当者の幅。題名の列は残りを受け取る。
+// 担当者の列は、ペア(朗読者)を下の行に重ねて入れるので、9ptで一番長い名前に括弧が付いた形
+// (「(五百旗頭 真次兄弟)」)が折り返さない幅。
+// ペアを使うのは会衆の聖書研究の1行だけで、そのために1列まるごと空けておくと
+// 題名と資料が窮屈になるため、縦に並べてその分を題名・資料に回している
+const [SONG_W, DURATION_W, END_W, MATERIAL_W, PRESENTER_W] = [34, 34, 48, 166, 108].map(px)
 const TITLE_W =
-  INNER_RIGHT - INNER_LEFT - (SONG_W + DURATION_W + END_W + MATERIAL_W + PRESENTER_W + PARTNER_W) - COLUMN_GAP * 6
+  INNER_RIGHT - INNER_LEFT - (SONG_W + DURATION_W + END_W + MATERIAL_W + PRESENTER_W) - COLUMN_GAP * 5
 const SONG_X = INNER_LEFT + TITLE_W + COLUMN_GAP
 const DURATION_X = SONG_X + SONG_W + COLUMN_GAP
 const END_X = DURATION_X + DURATION_W + COLUMN_GAP
 const MATERIAL_X = END_X + END_W + COLUMN_GAP
 const PRESENTER_X = MATERIAL_X + MATERIAL_W + COLUMN_GAP
-const PARTNER_X = PRESENTER_X + PRESENTER_W + COLUMN_GAP
 
 // 以下、PCで出したPDFからの実測値(pt)
 const TITLE_SIZE = 16
@@ -114,8 +116,10 @@ function layoutRow(font: PDFFont, row: ScheduleRow): LaidOutRow {
 
   const material = fitText(font, row.material, TEXT_SIZE, MATERIAL_W)
   const presenter = fitText(font, row.presenter, TEXT_SIZE, PRESENTER_W)
-  const partner = fitText(font, row.partner, TEXT_SIZE, PARTNER_W)
-  const lines = Math.max(title.lines.length, material.lines.length, presenter.lines.length, partner.lines.length)
+  const partner = fitText(font, row.partner, TEXT_SIZE, PRESENTER_W)
+  // ペアは担当者の下に続けて置く(同じ列)。空のときは行を増やさない
+  const assigneeLines = presenter.lines.length + (row.partner ? partner.lines.length : 0)
+  const lines = Math.max(title.lines.length, material.lines.length, assigneeLines)
   return {
     row,
     height: ROW_HEIGHT + (lines - 1) * LINE_STEP,
@@ -166,14 +170,18 @@ function drawRow(page: PDFPage, font: PDFFont, laid: LaidOutRow, top: number, st
       squeeze: laid.presenter.squeeze,
     }),
   )
-  laid.partner.lines.forEach((line, n) =>
-    drawText(page, font, line, PARTNER_X, at(n), {
-      ...text,
-      align: 'right',
-      width: PARTNER_W,
-      squeeze: laid.partner.squeeze,
-    }),
-  )
+  // ペア(会衆の聖書研究の朗読者)は、担当者と同じ列の下の行に置く
+  if (row.partner) {
+    const offset = laid.presenter.lines.length
+    laid.partner.lines.forEach((line, n) =>
+      drawText(page, font, line, PRESENTER_X, at(offset + n), {
+        ...text,
+        align: 'right',
+        width: PRESENTER_W,
+        squeeze: laid.partner.squeeze,
+      }),
+    )
+  }
 }
 
 export async function buildSchedulePdf(model: ScheduleModel, fontBytes: ArrayBuffer): Promise<Uint8Array> {
